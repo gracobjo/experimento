@@ -45,4 +45,10 @@ lerna-debug.log*
 .vscode-test
 
 # Uploads folder
-/uploads 
+/uploads
+
+# New additions from the code block
+echo "tokenExperimento.txt" >> .gitignore
+echo "*.txt" >> .gitignore
+echo "tokens/" >> .gitignore
+echo "secrets/" >> .gitignore 

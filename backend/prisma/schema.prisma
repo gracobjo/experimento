@@ -1,0 +1,220 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String        @id @default(uuid())
+  name                 String
+  email                String        @unique
+  password             String
+  role                 Role
+  resetPasswordToken   String?
+  resetPasswordExpires DateTime?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  appointmentsAsLawyer Appointment[]
+  client               Client?
+  documents            Document[]    @relation("UserDocuments")
+  expedientesAsLawyer  Expediente[]  @relation("LawyerExpedientes")
+  lawyer               Lawyer?
+  receivedMessages     ChatMessage[] @relation("ReceivedMessages")
+  sentMessages         ChatMessage[] @relation("SentMessages")
+  assignedTasks        Task[]        @relation("AssignedTasks")
+  createdTasks         Task[]        @relation("CreatedTasks")
+  facturasEmitidas     Invoice[]     @relation("EmisorFacturas")
+  facturasRecibidas    Invoice[]     @relation("ReceptorFacturas")
+}
+
+model Client {
+  id           String        @id @default(uuid())
+  userId       String        @unique
+  dni          String        @unique
+  phone        String?
+  address      String?
+  createdAt    DateTime      @default(now())
+  appointments Appointment[]
+  user         User          @relation(fields: [userId], references: [id])
+  expedientes  Expediente[]
+  tasks        Task[]
+  provisionFondos ProvisionFondos[]
+}
+
+model Lawyer {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  colegiado String   @unique
+  phone     String?
+  address   String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Expediente {
+  id          String     @id @default(uuid())
+  title       String
+  description String?
+  status      Status
+  clientId    String
+  lawyerId    String
+  createdAt   DateTime   @default(now())
+  documents   Document[]
+  client      Client     @relation(fields: [clientId], references: [id])
+  lawyer      User       @relation("LawyerExpedientes", fields: [lawyerId], references: [id])
+  tasks       Task[]
+  facturas    Invoice[]
+  provisionFondos ProvisionFondos[]
+}
+
+model Document {
+  id             String     @id @default(uuid())
+  expedienteId   String
+  filename       String
+  fileUrl        String
+  uploadedAt     DateTime   @default(now())
+  description    String?
+  fileSize       Int
+  mimeType       String
+  originalName   String
+  uploadedBy     String
+  expediente     Expediente @relation(fields: [expedienteId], references: [id])
+  uploadedByUser User       @relation("UserDocuments", fields: [uploadedBy], references: [id])
+}
+
+model Appointment {
+  id       String   @id @default(uuid())
+  clientId String
+  lawyerId String
+  date     DateTime
+  location String?
+  notes    String?
+  client   Client   @relation(fields: [clientId], references: [id])
+  lawyer   User     @relation(fields: [lawyerId], references: [id])
+}
+
+model ChatMessage {
+  id         String   @id @default(uuid())
+  content    String
+  senderId   String
+  receiverId String
+  createdAt  DateTime @default(now())
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@map("chat_messages")
+}
+
+model ChatBotMessage {
+  id        String   @id @default(uuid())
+  sender    Sender
+  sessionId String
+  message   String
+  createdAt DateTime @default(now())
+
+  @@map("chat_bot_messages")
+}
+
+model Task {
+  id             String      @id @default(uuid())
+  title          String
+  description    String?
+  dueDate        DateTime?
+  priority       String      @default("MEDIA")
+  status         String      @default("PENDIENTE")
+  expedienteId   String?
+  clientId       String?
+  assignedTo     String?
+  createdBy      String
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  assignedToUser User?       @relation("AssignedTasks", fields: [assignedTo], references: [id])
+  client         Client?     @relation(fields: [clientId], references: [id])
+  createdByUser  User        @relation("CreatedTasks", fields: [createdBy], references: [id], onDelete: Cascade)
+  expediente     Expediente? @relation(fields: [expedienteId], references: [id])
+
+  @@map("tasks")
+}
+
+model Parametro {
+  id        String   @id @default(uuid())
+  clave     String   @unique
+  valor     String
+  etiqueta  String
+  tipo      String   // 'string', 'number', 'email', 'image', etc.
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  ADMIN
+  ABOGADO
+  CLIENTE
+}
+
+enum Status {
+  ABIERTO
+  EN_PROCESO
+  CERRADO
+}
+
+enum Sender {
+  USER
+  BOT
+}
+
+model Invoice {
+  id                String        @id @default(uuid())
+  numeroFactura     String        @unique
+  fechaFactura      DateTime
+  tipoFactura       String        // F=Completa, R=Rectificativa
+  emisorId          String        // User (abogado/despacho)
+  receptorId        String        // User (cliente)
+  expedienteId      String?       // Relación opcional con Expediente
+  importeTotal      Float
+  baseImponible     Float
+  cuotaIVA          Float
+  tipoIVA           Float
+  regimenIvaEmisor  String
+  claveOperacion    String        // Por defecto '01'
+  metodoPago        String
+  fechaOperacion    DateTime
+  xml               String?       // XML Facturae generado
+  xmlFirmado        String?       // XML firmado digitalmente
+  estado            String        // borrador, emitida, enviada, aceptada, rechazada
+  selloTiempo       DateTime?     // Sello de tiempo TSA
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  emisor            User          @relation("EmisorFacturas", fields: [emisorId], references: [id])
+  receptor          User          @relation("ReceptorFacturas", fields: [receptorId], references: [id])
+  expediente        Expediente?   @relation(fields: [expedienteId], references: [id])
+  items             InvoiceItem[]
+  provisionFondos    ProvisionFondos[]
+}
+
+model InvoiceItem {
+  id          String   @id @default(uuid())
+  invoiceId   String
+  description String
+  quantity    Int
+  unitPrice   Float
+  total       Float
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id])
+}
+
+model ProvisionFondos {
+  id           String     @id @default(uuid())
+  clientId     String
+  expedienteId String?
+  invoiceId    String?
+  amount       Float
+  date         DateTime   @default(now())
+  description  String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  client       Client     @relation(fields: [clientId], references: [id])
+  expediente   Expediente? @relation(fields: [expedienteId], references: [id])
+  invoice      Invoice?   @relation(fields: [invoiceId], references: [id])
+}

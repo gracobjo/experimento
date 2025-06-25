@@ -6,6 +6,12 @@
 - **[README Principal](../README.md)** - Documentación principal del proyecto
 - **[Configuración Avanzada](configuracion-avanzada.md)** - Configuraciones detalladas
 
+## 🎨 Home Builder - Sistema de Diseño
+
+- **[Home Builder - Documentación Completa](home-builder.md)** - Sistema completo de drag & drop
+- **[Home Builder - Guía Rápida](home-builder-guia-rapida.md)** - Uso rápido del Home Builder
+- **[Home Builder - API Documentation](home-builder-api.md)** - Documentación técnica de la API
+
 ## 🔧 Configuración y Despliegue
 
 - **[Ejemplos de Variables de Entorno](ejemplos-env.md)** - Configuración de .env
@@ -29,6 +35,7 @@
 ```
 experimento/
 ├── backend/          # API NestJS
+│   └── src/components/HomeBuilder/  # 🎨 Sistema Home Builder
 ├── frontend/         # Aplicación React
 ├── chatbot/          # Chatbot Python
 ├── documentacion/    # 📚 Esta documentación
@@ -43,6 +50,11 @@ experimento/
 3. [Documentación Swagger](swagger-endpoints.md) - API completa
 4. [Configuración de Swagger](swagger-configuracion.md) - Detalles técnicos
 
+### Para Home Builder
+1. [Home Builder - Guía Rápida](home-builder-guia-rapida.md) - Uso rápido del sistema
+2. [Home Builder - Documentación Completa](home-builder.md) - Funcionalidades avanzadas
+3. [Home Builder - API Documentation](home-builder-api.md) - Documentación técnica
+
 ### Para Despliegue
 1. [Despliegue en Producción](despliegue-produccion.md) - Configuración de producción
 2. [Ejemplos de Variables de Entorno](ejemplos-env.md) - Configuración de .env
@@ -56,16 +68,18 @@ experimento/
 ## 🔗 Enlaces Importantes
 
 - **API Documentation**: `http://localhost:3000/api/docs`
-- **Frontend**: `http://localhost:5173`
+- **Frontend**: `http://localhost:5174`
 - **Backend**: `http://localhost:3000`
 - **Chatbot**: `http://localhost:5000`
+- **Home Builder**: `http://localhost:5174/admin/home-builder`
 
 ## 📝 Notas de Actualización
 
 - **Última actualización**: Diciembre 2024
-- **Versión**: 1.0.0
-- **Estado**: Documentación completa con Swagger
+- **Versión**: 1.1.0
+- **Estado**: Documentación completa con Swagger + Home Builder
 - **Endpoints documentados**: 60+
+- **Nuevas funcionalidades**: 🎨 Sistema Home Builder completo
 
 ---
 
@@ -117,9 +131,10 @@ Esta documentación está bajo la misma licencia que el proyecto principal.
 - ✅ Detección de token de seguridad
 - ✅ Configuración de .gitignore
 - ✅ Documentación completa generada
+- ✅ 🎨 Sistema Home Builder implementado
 
 ---
 
 **Última actualización**: Diciembre 2024  
-**Versión de documentación**: 1.1.0  
-**Archivos de documentación**: 10 
+**Versión de documentación**: 1.2.0  
+**Archivos de documentación**: 13 (incluyendo Home Builder) 

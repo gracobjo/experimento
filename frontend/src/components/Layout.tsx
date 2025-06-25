@@ -48,6 +48,9 @@ const Layout = () => {
                       <Link to="/admin/reports" className="hover:text-blue-200">
                         Reportes
                       </Link>
+                      <Link to="/admin/home-builder" className="hover:text-blue-200">
+                        Home Builder
+                      </Link>
                     </>
                   )}
                   {isLawyer && (

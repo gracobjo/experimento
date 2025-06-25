@@ -28,6 +28,7 @@ model User {
   createdTasks         Task[]        @relation("CreatedTasks")
   facturasEmitidas     Invoice[]     @relation("EmisorFacturas")
   facturasRecibidas    Invoice[]     @relation("ReceptorFacturas")
+  layouts              Layout[]
 }
 
 model Client {
@@ -217,4 +218,19 @@ model ProvisionFondos {
   client       Client     @relation(fields: [clientId], references: [id])
   expediente   Expediente? @relation(fields: [expedienteId], references: [id])
   invoice      Invoice?   @relation(fields: [invoiceId], references: [id])
+}
+
+model Layout {
+  id            String   @id @default(uuid())
+  name          String
+  slug          String   @unique // 'home', 'about', etc.
+  components    Json     // Array de componentes serializado
+  version       Int      @default(1)
+  isActive      Boolean  @default(false)
+  createdBy     String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  createdByUser User     @relation(fields: [createdBy], references: [id])
+
+  @@map("layouts")
 }

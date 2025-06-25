@@ -38,6 +38,7 @@ import TasksManagementPage from './pages/admin/TasksManagementPage';
 import DocumentsManagementPage from './pages/admin/DocumentsManagementPage';
 import AdminReportsPage from './pages/admin/ReportsPage';
 import ParametrosConfigPage from './pages/admin/ParametrosConfigPage';
+import HomeBuilderPage from './pages/admin/HomeBuilderPage';
 
 import ChatPage from './pages/client/ChatPage';
 import LawyerChatPage from './pages/lawyer/ChatPage';
@@ -74,6 +75,7 @@ function App() {
                   <Route path="tasks" element={<TasksManagementPage />} />
                   <Route path="documents" element={<DocumentsManagementPage />} />
                   <Route path="reports" element={<AdminReportsPage />} />
+                  <Route path="home-builder" element={<HomeBuilderPage />} />
                   <Route path="settings" element={<PlaceholderPage title="Configuración del Sistema" description="Configurar parámetros generales" icon="⚙️" />} />
                   <Route path="audit" element={<PlaceholderPage title="Auditoría" description="Registros de actividad del sistema" icon="🔍" />} />
                   <Route path="backup" element={<PlaceholderPage title="Backup y Restauración" description="Gestionar copias de seguridad" icon="💾" />} />

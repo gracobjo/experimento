@@ -13,6 +13,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { ParametrosModule } from './parametros/parametros.module';
 import { InvoicesModule } from './invoices/invoices.module';
 import { ProvisionFondosModule } from './provision-fondos/provision-fondos.module';
+import { ContactModule } from './contact/contact.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { ProvisionFondosModule } from './provision-fondos/provision-fondos.modul
     ParametrosModule,
     InvoicesModule,
     ProvisionFondosModule,
+    ContactModule,
   ],
 })
 export class AppModule {} 

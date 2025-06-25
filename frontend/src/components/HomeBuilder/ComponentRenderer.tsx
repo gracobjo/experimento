@@ -50,9 +50,12 @@ const HeroBanner: React.FC<{ props: any }> = ({ props }) => (
     <div className="text-center">
       <h1 className="text-4xl font-bold mb-4">{props.title || 'Banner Principal'}</h1>
       <p className="text-xl mb-6 opacity-90">{props.subtitle || 'Subtítulo del banner'}</p>
-      <button className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+      <a 
+        href={props.ctaLink || '/contact'} 
+        className="inline-block bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+      >
         {props.ctaText || 'Consultar Ahora'}
-      </button>
+      </a>
     </div>
   </div>
 );

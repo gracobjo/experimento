@@ -234,3 +234,16 @@ model Layout {
 
   @@map("layouts")
 }
+
+model Contact {
+  id        String   @id @default(uuid())
+  nombre    String
+  email     String
+  telefono  String?
+  asunto    String
+  mensaje   String
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

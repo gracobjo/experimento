@@ -1,5 +1,5 @@
-import { IsString, IsNotEmpty, IsDateString, IsNumber, IsArray, ValidateNested, IsOptional } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsString, IsNotEmpty, IsDateString, IsNumber, IsArray, ValidateNested, IsOptional, IsBoolean } from 'class-validator';
+import { Type, Transform } from 'class-transformer';
 
 class InvoiceItemDto {
   @IsString()
@@ -22,15 +22,16 @@ export class CreateInvoiceDto {
   numeroFactura?: string;
 
   @IsDateString()
-  fechaFactura: string;
+  @IsOptional()
+  fechaFactura?: string;
 
   @IsString()
   @IsNotEmpty()
   tipoFactura: string;
 
   @IsString()
-  @IsNotEmpty()
-  emisorId: string;
+  @IsOptional()
+  emisorId?: string;
 
   @IsString()
   @IsNotEmpty()
@@ -40,14 +41,14 @@ export class CreateInvoiceDto {
   @IsString()
   expedienteId?: string;
 
-  @IsNumber()
-  importeTotal: number;
+  @IsOptional()
+  importeTotal?: any;
 
-  @IsNumber()
-  baseImponible: number;
+  @IsOptional()
+  baseImponible?: any;
 
-  @IsNumber()
-  cuotaIVA: number;
+  @IsOptional()
+  cuotaIVA?: any;
 
   @IsNumber()
   tipoIVA: number;
@@ -66,6 +67,35 @@ export class CreateInvoiceDto {
 
   @IsDateString()
   fechaOperacion: string;
+
+  @IsOptional()
+  @IsString()
+  motivoAnulacion?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  provisionIds?: string[];
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === '' || value === null || value === undefined) return 0;
+    const num = Number(value);
+    return isNaN(num) ? 0 : num;
+  })
+  descuento?: number;
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === '' || value === null || value === undefined) return 0;
+    const num = Number(value);
+    return isNaN(num) ? 0 : num;
+  })
+  retencion?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  aplicarIVA?: boolean;
 
   @IsArray()
   @ValidateNested({ each: true })

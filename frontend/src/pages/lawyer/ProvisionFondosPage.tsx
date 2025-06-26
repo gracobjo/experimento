@@ -64,7 +64,7 @@ const ProvisionFondosPage = () => {
         clientId, // string
         expedienteId: form.expedienteId,
         amount: Number(form.amount),
-        date: form.date,
+        ...(form.date ? { date: form.date } : {}),
         description: form.description,
       };
       const res = await createProvision(data, token);
@@ -125,6 +125,17 @@ const ProvisionFondosPage = () => {
               onChange={handleExpedienteInput}
             />
           </div>
+          {!form.date && (
+            <div className="mb-2 text-xs text-gray-500">
+              La fecha de la provisión se asignará automáticamente al crearla.
+            </div>
+          )}
+          {form.date && (
+            <div className="mb-2">
+              <label className="block text-sm font-medium mb-1">Fecha de provisión</label>
+              <input value={form.date.slice(0,10)} readOnly className="border px-2 py-1 rounded w-full bg-gray-100" />
+            </div>
+          )}
           <div>
             <label htmlFor="amount" className="block text-sm">Importe</label>
             <input 
@@ -132,18 +143,6 @@ const ProvisionFondosPage = () => {
               name="amount" 
               type="number" 
               value={form.amount} 
-              onChange={handleChange} 
-              className="border px-2 py-1 rounded w-full" 
-              required 
-            />
-          </div>
-          <div>
-            <label htmlFor="date" className="block text-sm">Fecha</label>
-            <input 
-              id="date"
-              name="date" 
-              type="date" 
-              value={form.date} 
               onChange={handleChange} 
               className="border px-2 py-1 rounded w-full" 
               required 

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards, UsePipes, ValidationPipe, Request, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards, UsePipes, ValidationPipe, Request, HttpException, HttpStatus, Patch } from '@nestjs/common';
 import { InvoicesService } from './invoices.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
@@ -78,5 +78,14 @@ export class InvoicesController {
   async uploadSigned(@Body() body: { id: string; signedXml: string }, @Request() req) {
     // Validar que el usuario es el emisor de la factura
     return this.invoicesService.saveSignedXml(body.id, body.signedXml, req.user.id);
+  }
+
+  @Patch(':id/anular')
+  @Roles(Role.ABOGADO)
+  async annul(@Param('id') id: string, @Body() body: { motivoAnulacion: string }, @Request() req) {
+    if (!body.motivoAnulacion || body.motivoAnulacion.trim().length < 3) {
+      throw new HttpException('El motivo de anulación es obligatorio y debe tener al menos 3 caracteres.', HttpStatus.BAD_REQUEST);
+    }
+    return this.invoicesService.annul(id, body.motivoAnulacion, req.user.id);
   }
 } 

@@ -35,8 +35,8 @@
 ```
 experimento/
 ├── backend/          # API NestJS
-│   └── src/components/HomeBuilder/  # 🎨 Sistema Home Builder
 ├── frontend/         # Aplicación React
+│   └── src/components/HomeBuilder/  # 🎨 Sistema Home Builder
 ├── chatbot/          # Chatbot Python
 ├── documentacion/    # 📚 Esta documentación
 └── README.md         # Documentación principal
@@ -72,14 +72,15 @@ experimento/
 - **Backend**: `http://localhost:3000`
 - **Chatbot**: `http://localhost:5000`
 - **Home Builder**: `http://localhost:5174/admin/home-builder`
+- **Página de Contacto**: `http://localhost:5174/contact`
 
 ## 📝 Notas de Actualización
 
 - **Última actualización**: Diciembre 2024
-- **Versión**: 1.1.0
-- **Estado**: Documentación completa con Swagger + Home Builder
+- **Versión**: 1.2.0
+- **Estado**: Documentación completa con Swagger + Home Builder + Contact
 - **Endpoints documentados**: 60+
-- **Nuevas funcionalidades**: 🎨 Sistema Home Builder completo
+- **Nuevas funcionalidades**: 🎨 Sistema Home Builder completo + 📧 Página de Contacto
 
 ---
 
@@ -132,9 +133,10 @@ Esta documentación está bajo la misma licencia que el proyecto principal.
 - ✅ Configuración de .gitignore
 - ✅ Documentación completa generada
 - ✅ 🎨 Sistema Home Builder implementado
+- ✅ 📧 Página de Contacto implementada
 
 ---
 
 **Última actualización**: Diciembre 2024  
-**Versión de documentación**: 1.2.0  
-**Archivos de documentación**: 13 (incluyendo Home Builder) 
+**Versión de documentación**: 1.3.0  
+**Archivos de documentación**: 13 (incluyendo Home Builder y Contact) 

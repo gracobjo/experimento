@@ -19,4 +19,12 @@ export const getPendingProvisions = async (token: string) => {
     headers: { Authorization: `Bearer ${token}` },
   });
   return res.data;
+};
+
+export const getProvisionesPendientesPorClienteExpediente = async (clientId: string, expedienteId: string, token: string) => {
+  const res = await axios.get('/provision-fondos', {
+    params: { clientId, expedienteId, soloPendientes: true },
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data;
 }; 

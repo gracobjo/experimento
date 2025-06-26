@@ -144,6 +144,7 @@ URL: http://localhost:5174/admin/home-builder
 ```
 Frontend: http://localhost:5174/
 Home Builder: http://localhost:5174/admin/home-builder
+Página de Contacto: http://localhost:5174/contact
 Backend API: http://localhost:3000/
 ```
 

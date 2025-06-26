@@ -178,13 +178,17 @@ model Invoice {
   baseImponible     Float
   cuotaIVA          Float
   tipoIVA           Float
+  descuento         Float?        // Porcentaje de descuento
+  retencion         Float?        // Porcentaje de retención
+  aplicarIVA        Boolean       @default(true) // Si se debe aplicar IVA
   regimenIvaEmisor  String
   claveOperacion    String        // Por defecto '01'
   metodoPago        String
   fechaOperacion    DateTime
   xml               String?       // XML Facturae generado
   xmlFirmado        String?       // XML firmado digitalmente
-  estado            String        // borrador, emitida, enviada, aceptada, rechazada
+  estado            String        // borrador, emitida, enviada, aceptada, rechazada, anulada
+  motivoAnulacion    String?       // Motivo de anulación (nullable)
   selloTiempo       DateTime?     // Sello de tiempo TSA
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt

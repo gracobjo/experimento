@@ -22,7 +22,7 @@ export class LayoutsService {
       data: {
         name: createLayoutDto.name,
         slug: this.generateSlug(createLayoutDto.name),
-        components: createLayoutDto.components,
+        components: JSON.parse(JSON.stringify(createLayoutDto.components)),
         version: 1,
         isActive: false,
         createdBy: userId
@@ -142,7 +142,7 @@ export class LayoutsService {
       data: {
         name: updateLayoutDto.name,
         slug: updateLayoutDto.name ? this.generateSlug(updateLayoutDto.name) : undefined,
-        components: updateLayoutDto.components,
+        components: updateLayoutDto.components ? JSON.parse(JSON.stringify(updateLayoutDto.components)) : undefined,
         version: {
           increment: 1
         },

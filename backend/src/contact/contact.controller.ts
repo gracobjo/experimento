@@ -15,7 +15,7 @@ export class ContactController {
         message: 'Mensaje enviado correctamente. Nos pondremos en contacto contigo pronto.',
         data: result
       };
-    } catch (error) {
+    } catch (error: any) {
       throw new HttpException(
         {
           success: false,

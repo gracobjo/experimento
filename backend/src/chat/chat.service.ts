@@ -420,4 +420,25 @@ export class ChatService {
       return 0;
     }
   }
+
+  async getTotalUnreadCount(user: any) {
+    try {
+      const userId = user.id;
+      
+      // Por ahora, como no tenemos un campo de "leído" en el modelo,
+      // contamos todos los mensajes recibidos por el usuario
+      // En una implementación futura, esto sería: where: { receiverId: userId, read: false }
+      const count = await this.prisma.chatMessage.count({
+        where: {
+          receiverId: userId,
+          // read: false // Campo que se agregaría en el futuro
+        }
+      });
+      
+      return { count };
+    } catch (error) {
+      console.error('Error getting total unread count:', error);
+      return { count: 0 };
+    }
+  }
 } 

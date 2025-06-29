@@ -208,6 +208,21 @@ export class UsersService {
     }));
   }
 
+  async getMyClientProfile(userId: string) {
+    return this.prisma.client.findUnique({
+      where: { userId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          }
+        }
+      }
+    });
+  }
+
   async findLawyers() {
     return this.prisma.user.findMany({
       where: {

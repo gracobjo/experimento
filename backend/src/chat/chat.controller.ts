@@ -178,4 +178,26 @@ export class ChatController {
   async getMessagesWithUser(@Param('userId') userId: string, @Request() req) {
     return this.chatService.getMessagesWithUser(req.user, userId);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('unread-count')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ 
+    summary: 'Obtener conteo de mensajes no leídos',
+    description: 'Devuelve el número total de mensajes no leídos del usuario'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Conteo de mensajes no leídos',
+    schema: {
+      type: 'object',
+      properties: {
+        count: { type: 'number' }
+      }
+    }
+  })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
+  async getUnreadCount(@Request() req) {
+    return this.chatService.getTotalUnreadCount(req.user);
+  }
 } 

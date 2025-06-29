@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Request, Delete, Param, ForbiddenException, Put } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { AppointmentsService } from './appointments.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -87,5 +87,64 @@ export class AppointmentsController {
   @ApiResponse({ status: 401, description: 'No autorizado' })
   async create(@Body() createAppointmentDto: CreateAppointmentDto, @Request() req) {
     return this.appointmentsService.create(createAppointmentDto, req.user);
+  }
+
+  @Delete(':id')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ 
+    summary: 'Cancelar cita',
+    description: 'Permite a un cliente cancelar su propia cita'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Cita cancelada exitosamente'
+  })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
+  @ApiResponse({ status: 403, description: 'No tienes permisos para cancelar esta cita' })
+  @ApiResponse({ status: 404, description: 'Cita no encontrada' })
+  async delete(@Param('id') id: string, @Request() req) {
+    return this.appointmentsService.delete(id, req.user);
+  }
+
+  @Put(':id/reschedule')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ 
+    summary: 'Reprogramar cita',
+    description: 'Permite a un abogado reprogramar una cita existente'
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        date: { 
+          type: 'string', 
+          format: 'date-time',
+          description: 'Nueva fecha y hora de la cita'
+        },
+        location: { 
+          type: 'string',
+          description: 'Nueva ubicación de la cita (opcional)'
+        },
+        notes: { 
+          type: 'string',
+          description: 'Notas adicionales sobre el cambio (opcional)'
+        }
+      },
+      required: ['date']
+    }
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Cita reprogramada exitosamente'
+  })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
+  @ApiResponse({ status: 403, description: 'No tienes permisos para reprogramar esta cita' })
+  @ApiResponse({ status: 404, description: 'Cita no encontrada' })
+  async reschedule(
+    @Param('id') id: string, 
+    @Body() rescheduleData: { date: string; location?: string; notes?: string },
+    @Request() req
+  ) {
+    return this.appointmentsService.reschedule(id, rescheduleData, req.user);
   }
 } 

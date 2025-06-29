@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     totalCases: 0,
     activeCases: 0,
@@ -46,6 +47,18 @@ const Dashboard = () => {
           }));
         }
 
+        // Actividad reciente real
+        promises.push(axios.get('/api/cases/recent', {
+          headers: { Authorization: `Bearer ${token}` }
+        }));
+
+        // Actividad reciente completa para abogados
+        if (user?.role === 'ABOGADO') {
+          promises.push(axios.get('/api/cases/recent-activities', {
+            headers: { Authorization: `Bearer ${token}` }
+          }));
+        }
+
         const results = await Promise.all(promises);
         
         // Casos
@@ -56,6 +69,10 @@ const Dashboard = () => {
         const documentsStats = results[2].data;
         // Usuarios (solo para admin)
         const users = user?.role === 'ADMIN' ? results[3]?.data : [];
+        // Actividad reciente
+        const recentCases = results[user?.role === 'ADMIN' ? 4 : 3]?.data || [];
+        // Actividad reciente completa para abogados
+        const recentActivities = user?.role === 'ABOGADO' ? results[4]?.data : null;
 
         // Calcular valores según el rol
         let totalCases = 0, activeCases = 0, pendingAppointments = 0, recentDocuments = 0, totalUsers = 0;
@@ -98,45 +115,193 @@ const Dashboard = () => {
         });
 
         // Generar actividad reciente basada en datos reales
-        const activity: Array<{action: string; time: string; type: string}> = [];
+        const activity: Array<{
+          action: string; 
+          time: string; 
+          type: string;
+          id?: string;
+          link?: string;
+          entityType?: string;
+        }> = [];
         
-        // Agregar expedientes recientes
-        if (casesStats && casesStats.total > 0) {
-          activity.push({
-            action: `${casesStats.total} expedientes totales`,
-            time: 'Actualizado ahora',
-            type: 'case'
-          });
-        }
-        
-        // Agregar citas próximas
-        if (Array.isArray(appointments) && appointments.length > 0) {
-          const upcomingAppointments = appointments.filter((a: any) => new Date(a.date) > new Date());
-          if (upcomingAppointments.length > 0) {
-            activity.push({
-              action: `${upcomingAppointments.length} citas próximas`,
-              time: 'Próximas',
-              type: 'appointment'
+        // Para abogados, usar la actividad reciente completa
+        if (user?.role === 'ABOGADO' && recentActivities) {
+          // Agregar expedientes recientes
+          if (recentActivities.cases && recentActivities.cases.length > 0) {
+            recentActivities.cases.forEach((caseItem: any) => {
+              activity.push({
+                action: `Expediente: ${caseItem.title}`,
+                time: new Date(caseItem.createdAt).toLocaleDateString(),
+                type: 'case',
+                id: caseItem.id,
+                link: `/lawyer/cases/${caseItem.id}`,
+                entityType: 'case'
+              });
             });
           }
-        }
-        
-        // Agregar documentos recientes
-        if (documentsStats && documentsStats.total > 0) {
-          activity.push({
-            action: `${documentsStats.total} documentos`,
-            time: 'Total',
-            type: 'document'
-          });
-        }
-        
-        // Agregar usuarios (solo para admin)
-        if (user?.role === 'ADMIN' && totalUsers > 0) {
-          activity.push({
-            action: `${totalUsers} usuarios registrados`,
-            time: 'Total',
-            type: 'user'
-          });
+
+          // Agregar tareas recientes
+          if (recentActivities.tasks && recentActivities.tasks.length > 0) {
+            recentActivities.tasks.forEach((task: any) => {
+              const clientName = task.client?.user?.name || 'Cliente';
+              const expedienteTitle = task.expediente?.title ? ` - ${task.expediente.title}` : '';
+              activity.push({
+                action: `Tarea: ${task.title} (${clientName}${expedienteTitle})`,
+                time: new Date(task.createdAt).toLocaleDateString(),
+                type: 'task',
+                id: task.id,
+                link: `/lawyer/tasks`,
+                entityType: 'task'
+              });
+            });
+          }
+
+          // Agregar citas recientes
+          if (recentActivities.appointments && recentActivities.appointments.length > 0) {
+            recentActivities.appointments.forEach((appointment: any) => {
+              const clientName = appointment.client?.user?.name || 'Cliente';
+              activity.push({
+                action: `Cita con ${clientName} - ${new Date(appointment.date).toLocaleDateString()}`,
+                time: new Date(appointment.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                type: 'appointment',
+                id: appointment.id,
+                link: `/lawyer/appointments`,
+                entityType: 'appointment'
+              });
+            });
+          }
+
+          // Agregar provisiones de fondos recientes
+          if (recentActivities.provisions && recentActivities.provisions.length > 0) {
+            recentActivities.provisions.forEach((provision: any) => {
+              const clientName = provision.client?.user?.name || 'Cliente';
+              const expedienteTitle = provision.expediente?.title ? ` - ${provision.expediente.title}` : '';
+              activity.push({
+                action: `Provisión de fondos: ${provision.amount}€ (${clientName}${expedienteTitle})`,
+                time: new Date(provision.createdAt).toLocaleDateString(),
+                type: 'provision',
+                id: provision.id,
+                link: `/lawyer/provisiones`,
+                entityType: 'provision'
+              });
+            });
+          }
+        } else if (user?.role === 'CLIENTE') {
+          // Actividad reciente mejorada para clientes
+          // Agregar expedientes recientes
+          if (Array.isArray(recentCases) && recentCases.length > 0) {
+            recentCases.slice(0, 2).forEach((caseItem: any) => {
+              activity.push({
+                action: `Expediente: ${caseItem.title}`,
+                time: new Date(caseItem.createdAt).toLocaleDateString(),
+                type: 'case',
+                id: caseItem.id,
+                link: `/client/cases/${caseItem.id}`,
+                entityType: 'case'
+              });
+            });
+          }
+          
+          // Agregar citas próximas
+          if (Array.isArray(appointments) && appointments.length > 0) {
+            const upcomingAppointments = appointments
+              .filter((a: any) => new Date(a.date) > new Date())
+              .slice(0, 2);
+            
+            upcomingAppointments.forEach((appointment: any) => {
+              const lawyerName = appointment.lawyer?.name || 'Abogado';
+              activity.push({
+                action: `Cita con ${lawyerName} - ${new Date(appointment.date).toLocaleDateString()}`,
+                time: new Date(appointment.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                type: 'appointment',
+                id: appointment.id,
+                link: `/client/appointments`,
+                entityType: 'appointment'
+              });
+            });
+          }
+          
+          // Agregar documentos recientes (si hay datos)
+          if (documentsStats && documentsStats.total > 0) {
+            activity.push({
+              action: `${documentsStats.total} documentos disponibles`,
+              time: 'Total',
+              type: 'document',
+              link: `/client/documents`,
+              entityType: 'document'
+            });
+          }
+          
+          // Agregar información de provisiones de fondos
+          if (stats.totalCases > 0) {
+            activity.push({
+              action: `Ver mis provisiones de fondos`,
+              time: 'Acceso directo',
+              type: 'provision',
+              link: `/client/provisiones`,
+              entityType: 'provision'
+            });
+          }
+        } else {
+          // Agregar expedientes recientes
+          if (Array.isArray(recentCases) && recentCases.length > 0) {
+            recentCases.slice(0, 3).forEach((caseItem: any) => {
+              activity.push({
+                action: `Expediente: ${caseItem.title}`,
+                time: new Date(caseItem.createdAt).toLocaleDateString(),
+                type: 'case',
+                id: caseItem.id,
+                link: user?.role === 'ADMIN' ? `/admin/cases/${caseItem.id}` : 
+                      user?.role === 'ABOGADO' ? `/lawyer/cases/${caseItem.id}` : 
+                      `/client/cases/${caseItem.id}`,
+                entityType: 'case'
+              });
+            });
+          }
+          
+          // Agregar citas próximas
+          if (Array.isArray(appointments) && appointments.length > 0) {
+            const upcomingAppointments = appointments
+              .filter((a: any) => new Date(a.date) > new Date())
+              .slice(0, 2);
+            
+            upcomingAppointments.forEach((appointment: any) => {
+              activity.push({
+                action: `Cita con ${appointment.client?.user?.name || 'Cliente'} - ${new Date(appointment.date).toLocaleDateString()}`,
+                time: new Date(appointment.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                type: 'appointment',
+                id: appointment.id,
+                link: user?.role === 'ADMIN' ? `/admin/appointments/${appointment.id}` : 
+                      user?.role === 'ABOGADO' ? `/lawyer/appointments` : 
+                      `/client/appointments`,
+                entityType: 'appointment'
+              });
+            });
+          }
+          
+          // Agregar documentos recientes (si hay datos)
+          if (documentsStats && documentsStats.total > 0) {
+            activity.push({
+              action: `${documentsStats.total} documentos en el sistema`,
+              time: 'Total',
+              type: 'document',
+              link: user?.role === 'ADMIN' ? `/admin/documents` : 
+                    user?.role === 'ABOGADO' ? `/lawyer/documents` : 
+                    `/client/documents`,
+              entityType: 'document'
+            });
+          }
+          
+          // Agregar usuarios (solo para admin)
+          if (user?.role === 'ADMIN' && totalUsers > 0) {
+            activity.push({
+              action: `${totalUsers} usuarios registrados`,
+              time: 'Total',
+              type: 'user',
+              link: '/admin/users',
+              entityType: 'user'
+            });
+          }
         }
 
         setRecentActivity(activity.slice(0, 4)); // Máximo 4 actividades
@@ -495,6 +660,8 @@ interface RecentActivityProps {
 }
 
 const RecentActivity = ({ role, activities = [] }: RecentActivityProps) => {
+  const navigate = useNavigate();
+
   const getActivityData = () => {
     // Si hay actividades reales, usarlas
     if (activities && activities.length > 0) {
@@ -505,27 +672,126 @@ const RecentActivity = ({ role, activities = [] }: RecentActivityProps) => {
     switch (role) {
       case 'ADMIN':
         return [
-          { action: 'Nuevo usuario registrado', time: 'Hace 5 minutos', type: 'user' },
-          { action: 'Expediente creado #1234', time: 'Hace 15 minutos', type: 'case' },
-          { action: 'Cita programada', time: 'Hace 1 hora', type: 'appointment' },
-          { action: 'Documento subido', time: 'Hace 2 horas', type: 'document' }
+          { 
+            action: 'Nuevo usuario registrado', 
+            time: 'Hace 5 minutos', 
+            type: 'user',
+            link: '/admin/users',
+            entityType: 'user'
+          },
+          { 
+            action: 'Expediente creado #1234', 
+            time: 'Hace 15 minutos', 
+            type: 'case',
+            link: '/admin/cases',
+            entityType: 'case'
+          },
+          { 
+            action: 'Cita programada', 
+            time: 'Hace 1 hora', 
+            type: 'appointment',
+            link: '/admin/appointments',
+            entityType: 'appointment'
+          },
+          { 
+            action: 'Documento subido', 
+            time: 'Hace 2 horas', 
+            type: 'document',
+            link: '/admin/documents',
+            entityType: 'document'
+          }
         ];
       case 'ABOGADO':
         return [
-          { action: 'Nuevo caso asignado', time: 'Hace 10 minutos', type: 'case' },
-          { action: 'Cita con cliente', time: 'Hace 30 minutos', type: 'appointment' },
-          { action: 'Documento revisado', time: 'Hace 1 hora', type: 'document' },
-          { action: 'Tarea completada', time: 'Hace 2 horas', type: 'task' }
+          { 
+            action: 'Nuevo caso asignado', 
+            time: 'Hace 10 minutos', 
+            type: 'case',
+            link: '/lawyer/cases',
+            entityType: 'case'
+          },
+          { 
+            action: 'Cita con cliente', 
+            time: 'Hace 30 minutos', 
+            type: 'appointment',
+            link: '/lawyer/appointments',
+            entityType: 'appointment'
+          },
+          { 
+            action: 'Documento revisado', 
+            time: 'Hace 1 hora', 
+            type: 'document',
+            link: '/lawyer/documents',
+            entityType: 'document'
+          },
+          { 
+            action: 'Tarea completada', 
+            time: 'Hace 2 horas', 
+            type: 'task',
+            link: '/lawyer/tasks',
+            entityType: 'task'
+          }
         ];
       case 'CLIENTE':
         return [
-          { action: 'Documento recibido', time: 'Hace 5 minutos', type: 'document' },
-          { action: 'Cita confirmada', time: 'Hace 1 hora', type: 'appointment' },
-          { action: 'Actualización de caso', time: 'Hace 3 horas', type: 'case' },
-          { action: 'Pago procesado', time: 'Hace 1 día', type: 'payment' }
+          { 
+            action: 'Documento recibido', 
+            time: 'Hace 5 minutos', 
+            type: 'document',
+            link: '/client/documents',
+            entityType: 'document'
+          },
+          { 
+            action: 'Cita confirmada', 
+            time: 'Hace 1 hora', 
+            type: 'appointment',
+            link: '/client/appointments',
+            entityType: 'appointment'
+          },
+          { 
+            action: 'Actualización de caso', 
+            time: 'Hace 3 horas', 
+            type: 'case',
+            link: '/client/cases',
+            entityType: 'case'
+          },
+          { 
+            action: 'Pago procesado', 
+            time: 'Hace 1 día', 
+            type: 'payment',
+            link: '/client/payments',
+            entityType: 'payment'
+          }
         ];
       default:
         return [];
+    }
+  };
+
+  const handleActivityClick = (activity: any) => {
+    if (activity.link) {
+      navigate(activity.link);
+    }
+  };
+
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'case':
+        return '📋';
+      case 'appointment':
+        return '📅';
+      case 'document':
+        return '📄';
+      case 'task':
+        return '✅';
+      case 'user':
+        return '👤';
+      case 'payment':
+        return '💰';
+      case 'provision':
+        return '💳';
+      default:
+        return '📌';
     }
   };
 
@@ -538,17 +804,30 @@ const RecentActivity = ({ role, activities = [] }: RecentActivityProps) => {
       </div>
       <div className="divide-y divide-gray-200">
         {activityData.map((activity, index) => (
-          <div key={index} className="px-6 py-4">
+          <div 
+            key={index} 
+            className={`px-6 py-4 ${activity.link ? 'cursor-pointer hover:bg-gray-50 transition-colors' : ''}`}
+            onClick={() => activity.link && handleActivityClick(activity)}
+          >
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <div className="text-lg mr-3">{getActivityIcon(activity.type)}</div>
                 </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-900">{activity.action}</p>
+                <div className="ml-3 flex-1">
+                  <p className={`text-sm font-medium ${activity.link ? 'text-blue-600 hover:text-blue-800' : 'text-gray-900'}`}>
+                    {activity.action}
+                  </p>
                   <p className="text-sm text-gray-500">{activity.time}</p>
                 </div>
               </div>
+              {activity.link && (
+                <div className="flex-shrink-0">
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              )}
             </div>
           </div>
         ))}

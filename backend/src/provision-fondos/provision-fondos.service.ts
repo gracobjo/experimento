@@ -23,14 +23,40 @@ export class ProvisionFondosService {
     if (options.soloPendientes) where.invoiceId = null;
     return this.prisma.provisionFondos.findMany({
       where,
-      include: { invoice: true, expediente: true },
+      include: { 
+        invoice: true, 
+        expediente: {
+          include: {
+            lawyer: {
+              select: {
+                id: true,
+                name: true,
+                email: true
+              }
+            }
+          }
+        } 
+      },
     });
   }
 
   async findOne(id: string) {
     return this.prisma.provisionFondos.findUnique({
       where: { id },
-      include: { invoice: true, expediente: true },
+      include: { 
+        invoice: true, 
+        expediente: {
+          include: {
+            lawyer: {
+              select: {
+                id: true,
+                name: true,
+                email: true
+              }
+            }
+          }
+        } 
+      },
     });
   }
 
@@ -38,7 +64,20 @@ export class ProvisionFondosService {
     return this.prisma.provisionFondos.update({
       where: { id: provisionId },
       data: { invoiceId },
-      include: { invoice: true },
+      include: { 
+        invoice: true,
+        expediente: {
+          include: {
+            lawyer: {
+              select: {
+                id: true,
+                name: true,
+                email: true
+              }
+            }
+          }
+        } 
+      },
     });
   }
 }

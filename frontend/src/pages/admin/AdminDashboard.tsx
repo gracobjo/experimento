@@ -364,6 +364,97 @@ const AdminDashboard = () => {
                   <p className="text-xs text-gray-500">Gestionar copias de seguridad</p>
                 </div>
               </Link>
+
+              {/* Acceso rápido a Configuración de Menús */}
+              <Link
+                to="/admin/menu-config"
+                className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-yellow-600 rounded-md flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-gray-900">Configurar Menús</p>
+                  <p className="text-xs text-gray-500">Gestionar navegación del sitio</p>
+                </div>
+              </Link>
+
+              {/* Acceso rápido a Configuración del Sitio */}
+              <Link
+                to="/admin/site-config"
+                className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-teal-600 rounded-md flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-gray-900">Configurar Sitio</p>
+                  <p className="text-xs text-gray-500">Personalizar apariencia y contenido</p>
+                </div>
+              </Link>
+
+              {/* Acceso rápido a Home Builder */}
+              <Link
+                to="/admin/home-builder"
+                className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-purple-600 rounded-md flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4h4a2 2 0 002-2V5z" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-gray-900">Home Builder</p>
+                  <p className="text-xs text-gray-500">Diseñar página principal</p>
+                </div>
+              </Link>
+
+              {/* Configuración Guiada - Destacado */}
+              <Link
+                to="/admin/guided-config"
+                className="flex items-center p-4 border-2 border-blue-500 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+              >
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-blue-600 rounded-md flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-blue-900">🎯 Configuración Guiada</p>
+                  <p className="text-xs text-blue-700">Configurar sistema paso a paso</p>
+                </div>
+              </Link>
+
+              {/* Teleasistencia */}
+              <Link
+                to="/admin/teleassistance"
+                className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-green-600 rounded-md flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-gray-900">🖥️ Teleasistencia</p>
+                  <p className="text-xs text-gray-500">Asistencia remota a usuarios</p>
+                </div>
+              </Link>
             </div>
           </div>
         </div>

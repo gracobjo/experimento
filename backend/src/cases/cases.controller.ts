@@ -137,6 +137,194 @@ export class CasesController {
     return this.casesService.getCasesStats(req.user.id, req.user.role);
   }
 
+  @Get('recent')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ 
+    summary: 'Obtener casos recientes',
+    description: 'Devuelve los casos más recientes para la actividad reciente del dashboard'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Casos recientes',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          numeroExpediente: { type: 'string' },
+          titulo: { type: 'string' },
+          status: { type: 'string' },
+          createdAt: { type: 'string', format: 'date-time' },
+          client: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              user: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  email: { type: 'string' }
+                }
+              }
+            }
+          },
+          lawyer: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              name: { type: 'string' },
+              email: { type: 'string' }
+            }
+          }
+        }
+      }
+    }
+  })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
+  @Roles(Role.ADMIN, Role.ABOGADO, Role.CLIENTE)
+  getRecentCases(@Request() req) {
+    return this.casesService.getRecentCases(req.user.id, req.user.role);
+  }
+
+  @Get('recent-activities')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ 
+    summary: 'Obtener actividad reciente completa',
+    description: 'Devuelve todas las actividades recientes del abogado (expedientes, tareas, citas, provisiones)'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Actividad reciente completa',
+    schema: {
+      type: 'object',
+      properties: {
+        cases: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              title: { type: 'string' },
+              status: { type: 'string' },
+              createdAt: { type: 'string', format: 'date-time' },
+              client: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  user: {
+                    type: 'object',
+                    properties: {
+                      name: { type: 'string' },
+                      email: { type: 'string' }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        tasks: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              title: { type: 'string' },
+              status: { type: 'string' },
+              priority: { type: 'string' },
+              dueDate: { type: 'string', format: 'date-time' },
+              createdAt: { type: 'string', format: 'date-time' },
+              expediente: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  title: { type: 'string' }
+                }
+              },
+              client: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  user: {
+                    type: 'object',
+                    properties: {
+                      name: { type: 'string' },
+                      email: { type: 'string' }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        appointments: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              date: { type: 'string', format: 'date-time' },
+              location: { type: 'string' },
+              notes: { type: 'string' },
+              client: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  user: {
+                    type: 'object',
+                    properties: {
+                      name: { type: 'string' },
+                      email: { type: 'string' }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        provisions: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              amount: { type: 'number' },
+              description: { type: 'string' },
+              date: { type: 'string', format: 'date-time' },
+              createdAt: { type: 'string', format: 'date-time' },
+              expediente: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  title: { type: 'string' }
+                }
+              },
+              client: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  user: {
+                    type: 'object',
+                    properties: {
+                      name: { type: 'string' },
+                      email: { type: 'string' }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
+  @Roles(Role.ABOGADO)
+  getRecentActivities(@Request() req) {
+    return this.casesService.getRecentActivities(req.user.id);
+  }
+
   @Get('status/:status')
   getCasesByStatus(
     @Param('status', new ParseEnumPipe(Status)) status: Status,

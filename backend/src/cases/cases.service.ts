@@ -417,7 +417,7 @@ export class CasesService {
     } else if (userRole === 'ABOGADO') {
       whereClause = { lawyerId: currentUserId };
     }
-    // Los admins ven estadísticas de todos los expedientes
+    // Los admins ven todas las estadísticas (whereClause vacío)
 
     const [total, abiertos, enProceso, cerrados] = await Promise.all([
       this.prisma.expediente.count({ where: whereClause }),
@@ -431,6 +431,177 @@ export class CasesService {
       abiertos,
       enProceso,
       cerrados,
+      byStatus: {
+        ABIERTO: abiertos,
+        EN_PROCESO: enProceso,
+        CERRADO: cerrados,
+      }
+    };
+  }
+
+  async getRecentCases(currentUserId: string, userRole: string) {
+    let whereClause = {};
+
+    // Filtrar por rol del usuario
+    if (userRole === 'CLIENTE') {
+      const client = await this.prisma.client.findUnique({
+        where: { userId: currentUserId }
+      });
+
+      if (!client) {
+        throw new NotFoundException('Cliente no encontrado');
+      }
+
+      whereClause = { clientId: client.id };
+    } else if (userRole === 'ABOGADO') {
+      whereClause = { lawyerId: currentUserId };
+    }
+    // Los admins ven todos los casos recientes (whereClause vacío)
+
+    return this.prisma.expediente.findMany({
+      where: whereClause,
+      take: 5, // Solo los 5 más recientes
+      include: {
+        client: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              }
+            }
+          }
+        },
+        lawyer: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          }
+        },
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+    });
+  }
+
+  async getRecentActivities(lawyerId: string) {
+    // Obtener expedientes recientes del abogado
+    const recentCases = await this.prisma.expediente.findMany({
+      where: { lawyerId },
+      take: 3,
+      include: {
+        client: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              }
+            }
+          }
+        },
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+    });
+
+    // Obtener tareas recientes asignadas al abogado
+    const recentTasks = await this.prisma.task.findMany({
+      where: {
+        OR: [
+          { assignedTo: lawyerId },
+          { createdBy: lawyerId }
+        ]
+      },
+      take: 3,
+      include: {
+        expediente: {
+          select: {
+            id: true,
+            title: true,
+          }
+        },
+        client: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              }
+            }
+          }
+        },
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+    });
+
+    // Obtener citas recientes del abogado
+    const recentAppointments = await this.prisma.appointment.findMany({
+      where: { lawyerId },
+      take: 3,
+      include: {
+        client: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              }
+            }
+          }
+        },
+      },
+      orderBy: {
+        date: 'desc'
+      },
+    });
+
+    // Obtener provisiones de fondos recientes de los expedientes del abogado
+    const recentProvisions = await this.prisma.provisionFondos.findMany({
+      where: {
+        expediente: {
+          lawyerId: lawyerId
+        }
+      },
+      take: 3,
+      include: {
+        expediente: {
+          select: {
+            id: true,
+            title: true,
+          }
+        },
+        client: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              }
+            }
+          }
+        },
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+    });
+
+    return {
+      cases: recentCases,
+      tasks: recentTasks,
+      appointments: recentAppointments,
+      provisions: recentProvisions,
     };
   }
 } 

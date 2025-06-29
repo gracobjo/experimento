@@ -1,288 +1,640 @@
-# 📚 Documentación de Endpoints - Sistema de Gestión Legal
+# 📚 Documentación Completa de Endpoints API - Swagger
 
-## 🎯 Resumen de la API
+## 🎯 Información General
 
-**URL Base**: `http://localhost:3000/api`  
-**Documentación Swagger**: `http://localhost:3000/api/docs`  
-**Autenticación**: JWT Bearer Token
+- **URL Base**: `http://localhost:3000`
+- **Documentación Swagger**: `http://localhost:3000/api`
+- **Autenticación**: JWT Bearer Token
+- **Formato**: JSON
 
-## 🔐 Autenticación y Usuarios
+## 🔐 Autenticación
 
-### Base: `/auth`
-
-| Método | Endpoint | Descripción | Roles | Autenticación |
-|--------|----------|-------------|-------|---------------|
-| `POST` | `/auth/login` | Iniciar sesión | Todos | No |
-| `POST` | `/auth/register` | Registrar nuevo usuario | Todos | No |
-| `POST` | `/auth/forgot-password` | Solicitar recuperación de contraseña | Todos | No |
-| `POST` | `/auth/reset-password` | Restablecer contraseña | Todos | No |
-| `GET` | `/auth/me` | Obtener perfil del usuario actual | Todos | Sí |
-
----
-
-## 👥 Gestión de Usuarios
-
-### Base: `/users`
-
-| Método | Endpoint | Descripción | Roles | Autenticación |
-|--------|----------|-------------|-------|---------------|
-| `POST` | `/users` | Crear nuevo usuario | ADMIN, ABOGADO | Sí |
-| `GET` | `/users` | Obtener todos los usuarios | ADMIN | Sí |
-| `GET` | `/users/:id` | Obtener usuario por ID | ADMIN | Sí |
-| `PATCH` | `/users/:id` | Actualizar usuario | ADMIN | Sí |
-| `DELETE` | `/users/:id` | Eliminar usuario | ADMIN | Sí |
-| `GET` | `/users/clients` | Obtener todos los clientes | ADMIN, ABOGADO | Sí |
-| `GET` | `/users/clients/my` | Obtener mis clientes | ABOGADO | Sí |
-| `GET` | `/users/clients/stats` | Estadísticas de clientes | ADMIN, ABOGADO | Sí |
-| `GET` | `/users/clients/report` | Reporte de clientes | ADMIN, ABOGADO | Sí |
-| `GET` | `/users/lawyers` | Obtener todos los abogados | ADMIN, ABOGADO, CLIENTE | Sí |
-
----
-
-## 📋 Gestión de Casos
-
-### Base: `/cases`
-
-| Método | Endpoint | Descripción | Roles | Autenticación |
-|--------|----------|-------------|-------|---------------|
-| `POST` | `/cases` | Crear nuevo caso | ADMIN, ABOGADO | Sí |
-| `GET` | `/cases` | Obtener todos los casos | ADMIN, ABOGADO, CLIENTE | Sí |
-| `GET` | `/cases/stats` | Estadísticas de casos | Todos | Sí |
-| `GET` | `/cases/:id` | Obtener caso por ID | Todos | Sí |
-| `PATCH` | `/cases/:id` | Actualizar caso | ADMIN, ABOGADO | Sí |
-| `DELETE` | `/cases/:id` | Eliminar caso | ADMIN | Sí |
-
----
-
-## 📅 Gestión de Citas
-
-### Base: `/appointments`
-
-| Método | Endpoint | Descripción | Roles | Autenticación |
-|--------|----------|-------------|-------|---------------|
-| `POST` | `/appointments` | Crear nueva cita | Todos | Sí |
-| `GET` | `/appointments` | Obtener todas las citas | Todos | Sí |
-
----
-
-## 📝 Gestión de Documentos
-
-### Base: `/documents`
-
-| Método | Endpoint | Descripción | Roles | Autenticación |
-|--------|----------|-------------|-------|---------------|
-| `POST` | `/documents` | Subir nuevo documento | Todos | Sí |
-| `GET` | `/documents` | Obtener todos los documentos | Todos | Sí |
-| `GET` | `/documents/:id` | Obtener documento por ID | Todos | Sí |
-| `GET` | `/documents/expediente/:expedienteId` | Obtener documentos por expediente | Todos | Sí |
-| `DELETE` | `/documents/:id` | Eliminar documento | Todos | Sí |
-
----
-
-## ✅ Gestión de Tareas
-
-### Base: `/tasks`
-
-| Método | Endpoint | Descripción | Roles | Autenticación |
-|--------|----------|-------------|-------|---------------|
-| `POST` | `/tasks` | Crear nueva tarea | Todos | Sí |
-| `GET` | `/tasks` | Obtener todas las tareas | Todos | Sí |
-| `GET` | `/tasks/stats` | Estadísticas de tareas | Todos | Sí |
-| `GET` | `/tasks/upcoming` | Tareas próximas | Todos | Sí |
-| `GET` | `/tasks/:id` | Obtener tarea por ID | Todos | Sí |
-| `PATCH` | `/tasks/:id` | Actualizar tarea | Todos | Sí |
-| `PATCH` | `/tasks/:id/status` | Actualizar estado de tarea | Todos | Sí |
-| `DELETE` | `/tasks/:id` | Eliminar tarea | Todos | Sí |
-
----
-
-## 💰 Facturación Electrónica
-
-### Base: `/invoices`
-
-| Método | Endpoint | Descripción | Roles | Autenticación |
-|--------|----------|-------------|-------|---------------|
-| `POST` | `/invoices` | Crear nueva factura | ABOGADO | Sí |
-| `GET` | `/invoices` | Obtener todas las facturas | ADMIN, ABOGADO | Sí |
-| `GET` | `/invoices/:id` | Obtener factura por ID | ADMIN, ABOGADO | Sí |
-| `PATCH` | `/invoices/:id` | Actualizar factura | ABOGADO | Sí |
-| `DELETE` | `/invoices/:id` | Eliminar factura | ABOGADO | Sí |
-| `POST` | `/invoices/:id/sign` | Firmar factura digitalmente | ABOGADO | Sí |
-
----
-
-## 💳 Gestión de Provisiones de Fondos
-
-### Base: `/provision-fondos`
-
-| Método | Endpoint | Descripción | Roles | Autenticación |
-|--------|----------|-------------|-------|---------------|
-| `POST` | `/provision-fondos` | Crear nueva provisión | Todos | Sí |
-| `GET` | `/provision-fondos` | Obtener todas las provisiones | Todos | Sí |
-| `GET` | `/provision-fondos/:id` | Obtener provisión por ID | Todos | Sí |
-| `PATCH` | `/provision-fondos/link-to-invoice` | Vincular a factura | Todos | Sí |
-
----
-
-## 💬 Chat y Mensajería
-
-### Base: `/chat`
-
-| Método | Endpoint | Descripción | Roles | Autenticación |
-|--------|----------|-------------|-------|---------------|
-| `GET` | `/chat/test` | Probar conexión del chat | Todos | No |
-| `GET` | `/chat/messages` | Obtener mensajes | Todos | Sí |
-| `POST` | `/chat/messages` | Enviar mensaje | Todos | Sí |
-| `GET` | `/chat/conversations` | Obtener conversaciones | Todos | Sí |
-| `GET` | `/chat/messages/:userId` | Obtener mensajes con usuario específico | Todos | Sí |
-
----
-
-## 📊 Reportes y Estadísticas
-
-### Base: `/lawyer/reports`
-
-| Método | Endpoint | Descripción | Roles | Autenticación |
-|--------|----------|-------------|-------|---------------|
-| `GET` | `/lawyer/reports` | Reportes del abogado | ABOGADO | Sí |
-
----
-
-## ⚙️ Funciones Administrativas
-
-### Base: `/admin`
-
-| Método | Endpoint | Descripción | Roles | Autenticación |
-|--------|----------|-------------|-------|---------------|
-| `GET` | `/admin/dashboard` | Dashboard administrativo | ADMIN | Sí |
-| `GET` | `/admin/users` | Gestión de usuarios | ADMIN | Sí |
-| `GET` | `/admin/users/:id` | Usuario específico | ADMIN | Sí |
-| `PUT` | `/admin/users/:id` | Actualizar usuario | ADMIN | Sí |
-| `DELETE` | `/admin/users/:id` | Eliminar usuario | ADMIN | Sí |
-| `GET` | `/admin/cases` | Gestión de casos | ADMIN | Sí |
-| `GET` | `/admin/cases/:id` | Caso específico | ADMIN | Sí |
-| `PUT` | `/admin/cases/:id` | Actualizar caso | ADMIN | Sí |
-| `DELETE` | `/admin/cases/:id` | Eliminar caso | ADMIN | Sí |
-| `GET` | `/admin/appointments` | Gestión de citas | ADMIN | Sí |
-| `GET` | `/admin/appointments/:id` | Cita específica | ADMIN | Sí |
-| `PUT` | `/admin/appointments/:id` | Actualizar cita | ADMIN | Sí |
-| `DELETE` | `/admin/appointments/:id` | Eliminar cita | ADMIN | Sí |
-| `GET` | `/admin/tasks` | Gestión de tareas | ADMIN | Sí |
-| `GET` | `/admin/tasks/:id` | Tarea específica | ADMIN | Sí |
-| `PUT` | `/admin/tasks/:id` | Actualizar tarea | ADMIN | Sí |
-| `DELETE` | `/admin/tasks/:id` | Eliminar tarea | ADMIN | Sí |
-| `GET` | `/admin/documents` | Gestión de documentos | ADMIN | Sí |
-| `GET` | `/admin/documents/:id` | Documento específico | ADMIN | Sí |
-| `DELETE` | `/admin/documents/:id` | Eliminar documento | ADMIN | Sí |
-| `GET` | `/admin/reports` | Reportes del sistema | ADMIN | Sí |
-
----
-
-## 🔧 Configuración de Parámetros
-
-### Base: `/parametros`
-
-| Método | Endpoint | Descripción | Roles | Autenticación |
-|--------|----------|-------------|-------|---------------|
-| `GET` | `/parametros` | Obtener todos los parámetros | ADMIN | Sí |
-| `GET` | `/parametros/:id` | Obtener parámetro por ID | ADMIN | Sí |
-| `POST` | `/parametros` | Crear nuevo parámetro | ADMIN | Sí |
-| `PUT` | `/parametros/:id` | Actualizar parámetro | ADMIN | Sí |
-| `DELETE` | `/parametros/:id` | Eliminar parámetro | ADMIN | Sí |
-
----
-
-## 🔑 Autenticación y Autorización
-
-### JWT Token
-Todos los endpoints protegidos requieren un token JWT en el header:
-```
-Authorization: Bearer <token>
+### **Headers Requeridos**
+```http
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
 ```
 
-### Roles del Sistema
-- **ADMIN**: Acceso completo a todas las funcionalidades
-- **ABOGADO**: Gestión de casos, clientes, citas y tareas
-- **CLIENTE**: Acceso limitado a sus propios casos y documentos
+---
 
-### Códigos de Respuesta
-- `200`: Operación exitosa
-- `201`: Recurso creado exitosamente
-- `400`: Datos inválidos
-- `401`: No autorizado (token inválido o faltante)
-- `403`: Prohibido (rol insuficiente)
-- `404`: Recurso no encontrado
-- `409`: Conflicto (recurso ya existe)
-- `500`: Error interno del servidor
+## 👥 Usuarios (Users)
+
+### **GET /api/users**
+**Descripción**: Obtener lista de usuarios
+**Roles**: ADMIN
+**Respuesta**: Lista de usuarios con información básica
+
+### **GET /api/users/:id**
+**Descripción**: Obtener usuario por ID
+**Roles**: ADMIN, ABOGADO (solo su propio perfil)
+**Parámetros**: `id` (string) - ID del usuario
+
+### **POST /api/users**
+**Descripción**: Crear nuevo usuario
+**Roles**: ADMIN
+**Body**:
+```json
+{
+  "name": "string",
+  "email": "string",
+  "password": "string",
+  "role": "ADMIN | ABOGADO | CLIENTE"
+}
+```
+
+### **PUT /api/users/:id**
+**Descripción**: Actualizar usuario
+**Roles**: ADMIN, ABOGADO (solo su propio perfil)
+**Body**: Campos a actualizar
+
+### **DELETE /api/users/:id**
+**Descripción**: Eliminar usuario
+**Roles**: ADMIN
 
 ---
 
-## 📋 Ejemplos de Uso
+## 🔐 Autenticación (Auth)
 
-### 1. Iniciar Sesión
+### **POST /api/auth/login**
+**Descripción**: Iniciar sesión
+**Body**:
+```json
+{
+  "email": "string",
+  "password": "string"
+}
+```
+
+### **POST /api/auth/register**
+**Descripción**: Registrar nuevo usuario
+**Body**:
+```json
+{
+  "name": "string",
+  "email": "string",
+  "password": "string",
+  "role": "CLIENTE"
+}
+```
+
+### **POST /api/auth/forgot-password**
+**Descripción**: Solicitar restablecimiento de contraseña
+**Body**:
+```json
+{
+  "email": "string"
+}
+```
+
+### **POST /api/auth/reset-password**
+**Descripción**: Restablecer contraseña
+**Body**:
+```json
+{
+  "token": "string",
+  "password": "string"
+}
+```
+
+---
+
+## 📋 Expedientes (Cases)
+
+### **GET /api/cases**
+**Descripción**: Obtener lista de expedientes
+**Roles**: ADMIN, ABOGADO, CLIENTE
+**Query Params**: `page`, `limit`, `status`, `search`
+
+### **GET /api/cases/:id**
+**Descripción**: Obtener expediente por ID
+**Roles**: ADMIN, ABOGADO, CLIENTE (solo sus propios casos)
+
+### **POST /api/cases**
+**Descripción**: Crear nuevo expediente
+**Roles**: ABOGADO
+**Body**:
+```json
+{
+  "title": "string",
+  "description": "string",
+  "clientId": "string",
+  "status": "ACTIVE | CLOSED | PENDING"
+}
+```
+
+### **PUT /api/cases/:id**
+**Descripción**: Actualizar expediente
+**Roles**: ABOGADO (solo sus propios casos)
+
+### **DELETE /api/cases/:id**
+**Descripción**: Eliminar expediente
+**Roles**: ABOGADO (solo sus propios casos)
+
+### **GET /api/cases/recent**
+**Descripción**: Obtener expedientes recientes
+**Roles**: ADMIN, ABOGADO, CLIENTE
+**Query Params**: `limit` (default: 5)
+
+### **GET /api/cases/recent-activities**
+**Descripción**: Obtener actividad reciente completa (abogados)
+**Roles**: ABOGADO
+**Respuesta**: Expedientes, tareas, citas y provisiones recientes
+
+---
+
+## 📄 Documentos (Documents)
+
+### **GET /api/documents**
+**Descripción**: Obtener lista de documentos
+**Roles**: ADMIN, ABOGADO, CLIENTE
+**Query Params**: `caseId`, `type`, `page`, `limit`
+
+### **POST /api/documents/upload**
+**Descripción**: Subir documento
+**Roles**: ADMIN, ABOGADO, CLIENTE
+**Content-Type**: `multipart/form-data`
+**Body**:
+```form-data
+file: File
+caseId: string
+type: string
+description: string
+```
+
+### **GET /api/documents/:id**
+**Descripción**: Obtener documento por ID
+**Roles**: ADMIN, ABOGADO, CLIENTE (solo documentos relacionados)
+
+### **DELETE /api/documents/:id**
+**Descripción**: Eliminar documento
+**Roles**: ADMIN, ABOGADO (solo documentos propios)
+
+---
+
+## 📅 Citas (Appointments)
+
+### **GET /api/appointments**
+**Descripción**: Obtener lista de citas
+**Roles**: ADMIN, ABOGADO, CLIENTE
+**Query Params**: `date`, `status`, `userId`
+
+### **POST /api/appointments**
+**Descripción**: Crear nueva cita
+**Roles**: ABOGADO
+**Body**:
+```json
+{
+  "title": "string",
+  "description": "string",
+  "date": "2024-01-15T10:00:00Z",
+  "clientId": "string",
+  "duration": 60
+}
+```
+
+### **PUT /api/appointments/:id**
+**Descripción**: Actualizar cita
+**Roles**: ABOGADO
+
+### **DELETE /api/appointments/:id**
+**Descripción**: Eliminar cita
+**Roles**: ABOGADO
+
+---
+
+## ✅ Tareas (Tasks)
+
+### **GET /api/tasks**
+**Descripción**: Obtener lista de tareas
+**Roles**: ADMIN, ABOGADO
+**Query Params**: `status`, `priority`, `assignedTo`
+
+### **POST /api/tasks**
+**Descripción**: Crear nueva tarea
+**Roles**: ABOGADO
+**Body**:
+```json
+{
+  "title": "string",
+  "description": "string",
+  "priority": "LOW | MEDIUM | HIGH",
+  "dueDate": "2024-01-15T10:00:00Z",
+  "assignedTo": "string"
+}
+```
+
+### **PUT /api/tasks/:id**
+**Descripción**: Actualizar tarea
+**Roles**: ABOGADO
+
+### **DELETE /api/tasks/:id**
+**Descripción**: Eliminar tarea
+**Roles**: ABOGADO
+
+---
+
+## 💰 Facturación (Invoices)
+
+### **GET /api/invoices**
+**Descripción**: Obtener lista de facturas
+**Roles**: ADMIN, ABOGADO
+**Query Params**: `status`, `clientId`, `dateFrom`, `dateTo`
+
+### **POST /api/invoices**
+**Descripción**: Crear nueva factura
+**Roles**: ABOGADO
+**Body**:
+```json
+{
+  "clientId": "string",
+  "items": [
+    {
+      "description": "string",
+      "quantity": 1,
+      "unitPrice": 100.00
+    }
+  ],
+  "paymentMethod": "TRANSFER | CASH | CARD"
+}
+```
+
+### **GET /api/invoices/:id**
+**Descripción**: Obtener factura por ID
+**Roles**: ADMIN, ABOGADO
+
+### **PUT /api/invoices/:id**
+**Descripción**: Actualizar factura
+**Roles**: ABOGADO
+
+### **POST /api/invoices/:id/generate-pdf**
+**Descripción**: Generar PDF de factura
+**Roles**: ABOGADO
+
+---
+
+## 💳 Provisiones de Fondos
+
+### **GET /api/provision-fondos**
+**Descripción**: Obtener lista de provisiones
+**Roles**: ADMIN, ABOGADO, CLIENTE
+**Query Params**: `status`, `clientId`
+
+### **POST /api/provision-fondos**
+**Descripción**: Crear nueva provisión
+**Roles**: ABOGADO
+**Body**:
+```json
+{
+  "clientId": "string",
+  "amount": 1000.00,
+  "description": "string",
+  "dueDate": "2024-01-15T10:00:00Z"
+}
+```
+
+### **PUT /api/provision-fondos/:id**
+**Descripción**: Actualizar provisión
+**Roles**: ABOGADO
+
+---
+
+## ⚙️ Parámetros (Parametros)
+
+### **GET /api/parametros**
+**Descripción**: Obtener parámetros del sistema
+**Roles**: ADMIN
+**Query Params**: `category`, `key`
+
+### **POST /api/parametros**
+**Descripción**: Crear nuevo parámetro
+**Roles**: ADMIN
+**Body**:
+```json
+{
+  "key": "string",
+  "value": "string",
+  "type": "string",
+  "category": "string",
+  "isPublic": true
+}
+```
+
+### **PUT /api/parametros/:id**
+**Descripción**: Actualizar parámetro
+**Roles**: ADMIN
+
+### **DELETE /api/parametros/:id**
+**Descripción**: Eliminar parámetro
+**Roles**: ADMIN
+
+---
+
+## 🏗️ Configuración de Menús (Menu Config)
+
+### **GET /api/menu-config**
+**Descripción**: Obtener configuraciones de menús
+**Roles**: ADMIN
+**Query Params**: `role`, `isActive`
+
+### **POST /api/menu-config**
+**Descripción**: Crear nueva configuración de menú
+**Roles**: ADMIN
+**Body**:
+```json
+{
+  "name": "string",
+  "role": "ADMIN | ABOGADO | CLIENTE",
+  "orientation": "horizontal | vertical",
+  "isActive": true,
+  "items": [
+    {
+      "label": "string",
+      "url": "string",
+      "icon": "string",
+      "order": 1,
+      "isVisible": true,
+      "isExternal": false
+    }
+  ]
+}
+```
+
+### **PUT /api/menu-config/:id**
+**Descripción**: Actualizar configuración de menú
+**Roles**: ADMIN
+
+### **DELETE /api/menu-config/:id**
+**Descripción**: Eliminar configuración de menú
+**Roles**: ADMIN
+
+---
+
+## 🏢 Configuración del Sitio (Site Config)
+
+### **GET /api/site-config**
+**Descripción**: Obtener configuraciones del sitio
+**Roles**: ADMIN
+**Query Params**: `category`, `isPublic`
+
+### **POST /api/site-config**
+**Descripción**: Crear nueva configuración del sitio
+**Roles**: ADMIN
+**Body**:
+```json
+{
+  "key": "string",
+  "value": "string",
+  "type": "string",
+  "category": "string",
+  "isPublic": true
+}
+```
+
+### **PUT /api/site-config/:id**
+**Descripción**: Actualizar configuración del sitio
+**Roles**: ADMIN
+
+### **DELETE /api/site-config/:id**
+**Descripción**: Eliminar configuración del sitio
+**Roles**: ADMIN
+
+---
+
+## 🖥️ Teleasistencia (Teleassistance)
+
+### **POST /api/teleassistance/sessions**
+**Descripción**: Crear nueva sesión de teleasistencia
+**Roles**: ADMIN, ABOGADO, CLIENTE
+**Body**:
+```json
+{
+  "userId": "string",
+  "assistantId": "string",
+  "issueType": "AUTOFIRMA | CERTIFICADO_DIGITAL | SEDES | CLAVE_PIN | NAVEGADOR | SISTEMA_OPERATIVO | OTRO",
+  "description": "string",
+  "remoteTool": "REMOTELY_ANYWHERE | TEAMVIEWER_QUICKSUPPORT | ANYDESK | CHROME_REMOTE_DESKTOP | OTRO"
+}
+```
+
+### **GET /api/teleassistance/sessions/:id**
+**Descripción**: Obtener sesión de teleasistencia por ID
+**Roles**: ADMIN, ABOGADO, CLIENTE (solo sesiones relacionadas)
+
+### **GET /api/teleassistance/sessions/user/:userId**
+**Descripción**: Obtener sesiones de teleasistencia de un usuario
+**Roles**: ADMIN, ABOGADO, CLIENTE (solo sus propias sesiones)
+
+### **GET /api/teleassistance/sessions/assistant/:assistantId**
+**Descripción**: Obtener sesiones de teleasistencia de un asistente
+**Roles**: ADMIN, ABOGADO
+
+### **GET /api/teleassistance/sessions/pending**
+**Descripción**: Obtener sesiones pendientes de teleasistencia
+**Roles**: ADMIN, ABOGADO
+
+### **PUT /api/teleassistance/sessions/:id**
+**Descripción**: Actualizar sesión de teleasistencia
+**Roles**: ADMIN, ABOGADO
+**Body**:
+```json
+{
+  "status": "PENDING | ACTIVE | COMPLETED | CANCELLED",
+  "resolution": "string",
+  "notes": "string"
+}
+```
+
+### **POST /api/teleassistance/sessions/:id/start**
+**Descripción**: Iniciar una sesión de teleasistencia
+**Roles**: ADMIN, ABOGADO
+
+### **POST /api/teleassistance/sessions/:id/end**
+**Descripción**: Finalizar una sesión de teleasistencia
+**Roles**: ADMIN, ABOGADO
+**Body**:
+```json
+{
+  "resolution": "string"
+}
+```
+
+### **POST /api/teleassistance/sessions/:id/messages**
+**Descripción**: Agregar un mensaje a una sesión de teleasistencia
+**Roles**: ADMIN, ABOGADO, CLIENTE (solo en sus sesiones)
+**Body**:
+```json
+{
+  "content": "string",
+  "messageType": "TEXT | INSTRUCTION | SYSTEM"
+}
+```
+
+### **GET /api/teleassistance/sessions/:id/messages**
+**Descripción**: Obtener mensajes de una sesión de teleasistencia
+**Roles**: ADMIN, ABOGADO, CLIENTE (solo en sus sesiones)
+
+### **GET /api/teleassistance/remote-tools**
+**Descripción**: Obtener herramientas de control remoto disponibles
+**Roles**: ADMIN, ABOGADO, CLIENTE
+
+### **GET /api/teleassistance/common-issues**
+**Descripción**: Obtener problemas comunes y sus soluciones
+**Roles**: ADMIN, ABOGADO, CLIENTE
+
+### **GET /api/teleassistance/stats**
+**Descripción**: Obtener estadísticas de teleasistencia
+**Roles**: ADMIN
+
+### **GET /api/teleassistance/my-sessions**
+**Descripción**: Obtener sesiones del usuario autenticado
+**Roles**: ADMIN, ABOGADO, CLIENTE
+
+### **GET /api/teleassistance/available-assistants**
+**Descripción**: Obtener asistentes disponibles para teleasistencia
+**Roles**: ADMIN, ABOGADO, CLIENTE
+
+---
+
+## 📊 Reportes (Reports)
+
+### **GET /api/reports/cases**
+**Descripción**: Generar reporte de expedientes
+**Roles**: ADMIN, ABOGADO
+**Query Params**: `dateFrom`, `dateTo`, `status`, `clientId`
+
+### **GET /api/reports/invoices**
+**Descripción**: Generar reporte de facturación
+**Roles**: ADMIN, ABOGADO
+**Query Params**: `dateFrom`, `dateTo`, `status`
+
+### **GET /api/reports/teleassistance**
+**Descripción**: Generar reporte de teleasistencia
+**Roles**: ADMIN
+**Query Params**: `dateFrom`, `dateTo`, `issueType`, `assistantId`
+
+---
+
+## 💬 Chat
+
+### **WebSocket: /chat**
+**Descripción**: Conexión WebSocket para chat en tiempo real
+**Eventos**:
+- `join`: Unirse a una sala
+- `message`: Enviar mensaje
+- `leave`: Salir de una sala
+
+---
+
+## 📞 Contacto
+
+### **POST /api/contact**
+**Descripción**: Enviar mensaje de contacto
+**Body**:
+```json
+{
+  "name": "string",
+  "email": "string",
+  "subject": "string",
+  "message": "string"
+}
+```
+
+---
+
+## 🔧 Configuración del Sistema
+
+### **GET /api/admin/layouts**
+**Descripción**: Obtener layouts del sistema
+**Roles**: ADMIN
+
+### **POST /api/admin/layouts**
+**Descripción**: Crear nuevo layout
+**Roles**: ADMIN
+
+### **GET /api/admin/menu-config**
+**Descripción**: Obtener configuración de menús
+**Roles**: ADMIN
+
+### **POST /api/admin/menu-config**
+**Descripción**: Crear configuración de menú
+**Roles**: ADMIN
+
+### **GET /api/admin/site-config**
+**Descripción**: Obtener configuración del sitio
+**Roles**: ADMIN
+
+### **POST /api/admin/site-config**
+**Descripción**: Crear configuración del sitio
+**Roles**: ADMIN
+
+---
+
+## 📝 Códigos de Estado HTTP
+
+- **200**: OK - Operación exitosa
+- **201**: Created - Recurso creado exitosamente
+- **400**: Bad Request - Datos inválidos
+- **401**: Unauthorized - No autenticado
+- **403**: Forbidden - No autorizado
+- **404**: Not Found - Recurso no encontrado
+- **500**: Internal Server Error - Error del servidor
+
+---
+
+## 🔒 Roles y Permisos
+
+### **ADMIN**
+- Acceso completo a todas las funcionalidades
+- Gestión de usuarios y configuraciones del sistema
+- Estadísticas y reportes completos
+
+### **ABOGADO**
+- Gestión de expedientes, citas, tareas y facturas
+- Acceso a documentos relacionados
+- Teleasistencia como asistente
+- Reportes limitados
+
+### **CLIENTE**
+- Acceso a sus propios expedientes y documentos
+- Solicitud de citas
+- Teleasistencia como usuario
+- Acceso limitado a funcionalidades
+
+---
+
+## 📚 Ejemplos de Uso
+
+### **Crear Sesión de Teleasistencia**
 ```bash
-curl -X POST http://localhost:3000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "admin@despacho.com",
-    "password": "password123"
-  }'
-```
-
-### 2. Crear un Caso (con autenticación)
-```bash
-curl -X POST http://localhost:3000/api/cases \
-  -H "Content-Type: application/json" \
+curl -X POST http://localhost:3000/api/teleassistance/sessions \
   -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
   -d '{
-    "title": "Caso de divorcio",
-    "description": "Proceso de divorcio por mutuo acuerdo",
-    "clientId": "client-uuid",
-    "lawyerId": "lawyer-uuid"
+    "userId": "client_id",
+    "assistantId": "lawyer_id",
+    "issueType": "AUTOFIRMA",
+    "description": "No puedo instalar Autofirma",
+    "remoteTool": "REMOTELY_ANYWHERE"
   }'
 ```
 
-### 3. Obtener Casos del Usuario
+### **Obtener Sesiones Pendientes**
 ```bash
-curl -X GET http://localhost:3000/api/cases \
+curl -X GET http://localhost:3000/api/teleassistance/sessions/pending \
   -H "Authorization: Bearer <token>"
 ```
 
----
-
-## 🚀 Acceso a la Documentación
-
-### Swagger UI
-La documentación interactiva está disponible en:
+### **Enviar Mensaje en Sesión**
+```bash
+curl -X POST http://localhost:3000/api/teleassistance/sessions/session_id/messages \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "Hola, ¿cómo puedo ayudarte?",
+    "messageType": "TEXT"
+  }'
 ```
-http://localhost:3000/api/docs
-```
-
-### Características de Swagger
-- ✅ Documentación interactiva
-- ✅ Pruebas de endpoints en tiempo real
-- ✅ Esquemas de datos detallados
-- ✅ Ejemplos de request/response
-- ✅ Autenticación JWT integrada
-- ✅ Filtrado por tags
-- ✅ Búsqueda de endpoints
-
-### Organización por Tags
-- **auth**: Autenticación y gestión de usuarios
-- **users**: Gestión de usuarios y perfiles
-- **cases**: Gestión de casos y expedientes
-- **appointments**: Gestión de citas y agendas
-- **documents**: Gestión de documentos
-- **tasks**: Gestión de tareas y seguimiento
-- **invoices**: Facturación electrónica
-- **provision-fondos**: Gestión de provisiones de fondos
-- **chat**: Chat y mensajería
-- **reports**: Reportes y estadísticas
-- **admin**: Funciones administrativas
-- **parametros**: Configuración de parámetros del sistema
 
 ---
 
-**Última actualización**: Diciembre 2024  
-**Versión de la API**: 1.0.0  
-**Total de endpoints**: 60+ 
+**📖 Para más información, consulta la documentación completa en Swagger UI: `http://localhost:3000/api`** 

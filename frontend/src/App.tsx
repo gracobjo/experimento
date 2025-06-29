@@ -40,14 +40,23 @@ import DocumentsManagementPage from './pages/admin/DocumentsManagementPage';
 import AdminReportsPage from './pages/admin/ReportsPage';
 import ParametrosConfigPage from './pages/admin/ParametrosConfigPage';
 import HomeBuilderPage from './pages/admin/HomeBuilderPage';
+import MenuConfigPage from './pages/admin/MenuConfigPage';
+import SiteConfigPage from './pages/admin/SiteConfigPage';
+import GuidedConfigPage from './pages/admin/GuidedConfigPage';
+import TeleassistancePage from './pages/admin/TeleassistancePage';
 
 import ChatPage from './pages/client/ChatPage';
 import LawyerChatPage from './pages/lawyer/ChatPage';
-
 import InvoicesPage from './pages/lawyer/InvoicesPage';
 import ProvisionFondosPage from './pages/lawyer/ProvisionFondosPage';
-
+import ProvisionesPage from './pages/client/ProvisionesPage';
+import AppointmentsPage from './pages/client/AppointmentsPage';
 import DashboardLawyer from './pages/lawyer/DashboardLawyer';
+import UnauthorizedPage from './pages/UnauthorizedPage';
+
+// Importar páginas de teleasistencia
+import ClientTeleassistancePage from './pages/client/TeleassistancePage';
+import TeleassistanceRequestPage from './pages/client/TeleassistanceRequestPage';
 
 function App() {
   return (
@@ -78,6 +87,10 @@ function App() {
                   <Route path="documents" element={<DocumentsManagementPage />} />
                   <Route path="reports" element={<AdminReportsPage />} />
                   <Route path="home-builder" element={<HomeBuilderPage />} />
+                  <Route path="menu-config" element={<MenuConfigPage />} />
+                  <Route path="site-config" element={<SiteConfigPage />} />
+                  <Route path="guided-config" element={<GuidedConfigPage />} />
+                  <Route path="teleassistance" element={<TeleassistancePage />} />
                   <Route path="settings" element={<PlaceholderPage title="Configuración del Sistema" description="Configurar parámetros generales" icon="⚙️" />} />
                   <Route path="audit" element={<PlaceholderPage title="Auditoría" description="Registros de actividad del sistema" icon="🔍" />} />
                   <Route path="backup" element={<PlaceholderPage title="Backup y Restauración" description="Gestionar copias de seguridad" icon="💾" />} />
@@ -103,6 +116,7 @@ function App() {
                   <Route path="tasks" element={<TasksPage />} />
                   <Route path="reports" element={<ReportsPage />} />
                   <Route path="chat" element={<LawyerChatPage />} />
+                  <Route path="teleassistance" element={<TeleassistancePage />} />
                 </Route>
               </Route>
 
@@ -112,8 +126,11 @@ function App() {
                   <Route path="cases" element={<ClientCasesPage />} />
                   <Route path="cases/:id" element={<ClientCaseDetailPage />} />
                   <Route path="documents" element={<ClientDocumentsPage />} />
-                  <Route path="appointments" element={<PlaceholderPage title="Programar Cita" description="Agendar consulta con abogado" icon="📅" />} />
+                  <Route path="provisiones" element={<ProvisionesPage />} />
+                  <Route path="appointments" element={<AppointmentsPage />} />
                   <Route path="chat" element={<ChatPage />} />
+                  <Route path="teleassistance" element={<ClientTeleassistancePage />} />
+                  <Route path="teleassistance/request" element={<TeleassistanceRequestPage />} />
                   <Route path="payments" element={<PlaceholderPage title="Pagos" description="Gestionar pagos y facturas" icon="💳" />} />
                   <Route path="profile" element={<PlaceholderPage title="Perfil" description="Actualizar información personal" icon="👤" />} />
                 </Route>

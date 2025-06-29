@@ -29,6 +29,9 @@ model User {
   facturasEmitidas     Invoice[]     @relation("EmisorFacturas")
   facturasRecibidas    Invoice[]     @relation("ReceptorFacturas")
   layouts              Layout[]
+  teleassistanceSessions TeleassistanceSession[] @relation("UserTeleassistanceSessions")
+  assistantSessions    TeleassistanceSession[] @relation("AssistantTeleassistanceSessions")
+  teleassistanceMessages TeleassistanceMessage[]
 }
 
 model Client {
@@ -250,4 +253,83 @@ model Contact {
   userAgent String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Configuración de menús y elementos del sitio
+model MenuConfig {
+  id          String   @id @default(uuid())
+  name        String   // 'main-nav', 'sidebar-admin', 'sidebar-lawyer', 'sidebar-client'
+  role        Role     // Para qué rol es el menú
+  orientation String   @default("horizontal") // 'horizontal', 'vertical'
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  items       MenuItem[]
+}
+
+model MenuItem {
+  id          String     @id @default(uuid())
+  menuConfigId String
+  label       String     // Texto visible del enlace
+  url         String     // URL de destino
+  icon        String?    // Icono (emoji o clase CSS)
+  order       Int        @default(0)
+  isVisible   Boolean    @default(true)
+  isExternal  Boolean    @default(false) // Si es enlace externo
+  parentId    String?    // Para submenús
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  menuConfig  MenuConfig @relation(fields: [menuConfigId], references: [id], onDelete: Cascade)
+  parent      MenuItem?  @relation("MenuItemParent", fields: [parentId], references: [id])
+  children    MenuItem[] @relation("MenuItemParent")
+}
+
+model SiteConfig {
+  id          String   @id @default(uuid())
+  key         String   @unique // 'site_name', 'logo_url', 'favicon_url', 'primary_color', etc.
+  value       String
+  type        String   @default("string") // 'string', 'image', 'color', 'boolean', 'json'
+  category    String   @default("general") // 'branding', 'layout', 'contact', 'social'
+  description String?
+  isPublic    Boolean  @default(false) // Si se puede acceder sin autenticación
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model TeleassistanceSession {
+  id          String   @id @default(cuid())
+  userId      String
+  assistantId String
+  issueType   String   // AUTOFIRMA, CERTIFICADO_DIGITAL, SEDES, etc.
+  description String
+  remoteTool  String?  // REMOTELY_ANYWHERE, TEAMVIEWER, etc.
+  status      String   @default("PENDING") // PENDING, ACTIVE, COMPLETED, CANCELLED
+  sessionCode String   @unique
+  resolution  String?
+  notes       String?
+  startedAt   DateTime?
+  completedAt DateTime?
+  duration    Int?     // duración en minutos
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user      User @relation("UserTeleassistanceSessions", fields: [userId], references: [id])
+  assistant User @relation("AssistantTeleassistanceSessions", fields: [assistantId], references: [id])
+  messages  TeleassistanceMessage[]
+
+  @@map("teleassistance_sessions")
+}
+
+model TeleassistanceMessage {
+  id          String   @id @default(cuid())
+  sessionId   String
+  senderId    String
+  content     String
+  messageType String   @default("TEXT") // TEXT, INSTRUCTION, SYSTEM
+  createdAt   DateTime @default(now())
+
+  session TeleassistanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sender  User                   @relation(fields: [senderId], references: [id])
+
+  @@map("teleassistance_messages")
 }

@@ -14,6 +14,7 @@ import { ParametrosModule } from './parametros/parametros.module';
 import { InvoicesModule } from './invoices/invoices.module';
 import { ProvisionFondosModule } from './provision-fondos/provision-fondos.module';
 import { ContactModule } from './contact/contact.module';
+import { TeleassistanceModule } from './teleassistance/teleassistance.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { ContactModule } from './contact/contact.module';
     InvoicesModule,
     ProvisionFondosModule,
     ContactModule,
+    TeleassistanceModule,
   ],
 })
 export class AppModule {} 

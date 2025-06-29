@@ -15,7 +15,8 @@ export const linkProvisionToInvoice = async (provisionId: string, invoiceId: str
 };
 
 export const getPendingProvisions = async (token: string) => {
-  const res = await axios.get('/provision-fondos?soloPendientes=true', {
+  const res = await axios.get('/provision-fondos', {
+    params: { soloPendientes: true },
     headers: { Authorization: `Bearer ${token}` },
   });
   return res.data;
@@ -24,6 +25,15 @@ export const getPendingProvisions = async (token: string) => {
 export const getProvisionesPendientesPorClienteExpediente = async (clientId: string, expedienteId: string, token: string) => {
   const res = await axios.get('/provision-fondos', {
     params: { clientId, expedienteId, soloPendientes: true },
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data;
+};
+
+// Nueva función para obtener todas las provisiones de un cliente
+export const getClientProvisions = async (clientId: string, token: string) => {
+  const res = await axios.get('/provision-fondos', {
+    params: { clientId },
     headers: { Authorization: `Bearer ${token}` },
   });
   return res.data;

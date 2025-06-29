@@ -40,6 +40,57 @@ cd ../chatbot && python -m venv venv && source venv/bin/activate && pip install 
 - Backend: http://localhost:3000
 - Chatbot: http://localhost:8000
 
+## 📚 Documentación de la API (Swagger)
+
+### Acceso a Swagger
+```
+http://localhost:3000/api/docs
+```
+
+### Cómo Usar Swagger
+
+1. **Inicia el servidor backend** (si no está corriendo):
+   ```bash
+   cd backend
+   npm run start:dev
+   ```
+
+2. **Abre tu navegador** y ve a: `http://localhost:3000/api/docs`
+
+3. **Para usar la autenticación**:
+   - Primero obtén un token usando `POST /api/auth/login`
+   - Haz clic en "Authorize" en la parte superior
+   - Ingresa: `Bearer tu_token_jwt_aqui`
+
+### Características de Swagger
+- ✅ **Documentación Interactiva** - Todos los endpoints documentados
+- ✅ **Pruebas en Tiempo Real** - Prueba las APIs directamente
+- ✅ **Autenticación JWT** - Sistema integrado
+- ✅ **Filtrado por Tags** - Organizado por funcionalidad
+- ✅ **Esquemas Detallados** - Estructura de datos completa
+
+### Categorías de Endpoints
+- 🔐 **auth** - Autenticación y gestión de usuarios
+- 👤 **users** - Gestión de usuarios y perfiles
+- 📋 **cases** - Gestión de casos y expedientes
+- 📅 **appointments** - Gestión de citas y agendas
+- 📄 **documents** - Gestión de documentos
+- ✅ **tasks** - Gestión de tareas y seguimiento
+- 💰 **invoices** - Facturación electrónica
+- 💳 **provision-fondos** - Gestión de provisiones de fondos
+- 💬 **chat** - Chat y mensajería
+- 📊 **reports** - Reportes y estadísticas
+- ⚙️ **admin** - Funciones administrativas
+- 🔧 **parametros** - Configuración de parámetros del sistema
+
+### Ejemplo de Uso Rápido
+1. Ve a `http://localhost:3000/api/docs`
+2. Expande la sección **auth**
+3. Prueba `POST /api/auth/login` con credenciales de prueba
+4. Copia el token de la respuesta
+5. Haz clic en "Authorize" y pega el token
+6. ¡Ya puedes probar todos los endpoints!
+
 ## Comandos Útiles
 
 ```bash

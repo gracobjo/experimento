@@ -247,9 +247,16 @@ export class CasesService {
       }
     }
 
+    const { title, description, status, lawyerId, clientId } = updateCaseDto;
+    const data: any = {};
+    if (title !== undefined) data.title = title;
+    if (description !== undefined) data.description = description;
+    if (status !== undefined) data.status = status as Status;
+    if (lawyerId !== undefined) data.lawyerId = lawyerId;
+    if (clientId !== undefined) data.clientId = clientId;
     return this.prisma.expediente.update({
       where: { id },
-      data: updateCaseDto,
+      data,
       include: {
         client: {
           include: {
@@ -603,5 +610,54 @@ export class CasesService {
       appointments: recentAppointments,
       provisions: recentProvisions,
     };
+  }
+
+  async findByClientId(clientId: string) {
+    return this.prisma.expediente.findMany({
+      where: { clientId },
+      include: {
+        client: { include: { user: true } },
+        lawyer: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async createForClient(clientId: string, createCaseDto: CreateCaseDto, userId: string) {
+    const { title, description, status } = createCaseDto;
+    return this.prisma.expediente.create({
+      data: {
+        title,
+        description,
+        status: status as Status,
+        clientId,
+        lawyerId: userId,
+      },
+    });
+  }
+
+  async updateForClient(clientId: string, caseId: string, updateCaseDto: UpdateCaseDto, userId: string) {
+    const expediente = await this.prisma.expediente.findFirst({ where: { id: caseId, clientId } });
+    if (!expediente) throw new Error('Caso no encontrado para este cliente');
+    const { title, description, status } = updateCaseDto;
+    return this.prisma.expediente.update({
+      where: { id: caseId },
+      data: {
+        title,
+        description,
+        status: status as Status,
+      },
+    });
+  }
+
+  async patchForClient(clientId: string, caseId: string, updateCaseDto: UpdateCaseDto, userId: string) {
+    return this.updateForClient(clientId, caseId, updateCaseDto, userId);
+  }
+
+  async deleteForClient(clientId: string, caseId: string, userId: string) {
+    const expediente = await this.prisma.expediente.findFirst({ where: { id: caseId, clientId } });
+    if (!expediente) throw new Error('Caso no encontrado para este cliente');
+    await this.prisma.expediente.delete({ where: { id: caseId } });
+    return { message: 'Caso eliminado exitosamente' };
   }
 } 

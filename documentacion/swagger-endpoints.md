@@ -140,6 +140,30 @@ Content-Type: application/json
 **Roles**: ABOGADO
 **Respuesta**: Expedientes, tareas, citas y provisiones recientes
 
+### **GET /cases/by-client/{clientId}**
+**Descripción**: Lista todos los casos de un cliente específico.
+**Roles**: ADMIN, ABOGADO
+**Query Params**: `clientId`
+
+### **POST /cases/by-client/{clientId}**
+**Descripción**: Crea un nuevo caso para un cliente.
+**Roles**: ADMIN, ABOGADO
+**Body**: CreateCaseDto
+
+### **PUT /cases/by-client/{clientId}/{caseId}**
+**Descripción**: Actualiza un caso de un cliente.
+**Roles**: ADMIN, ABOGADO
+**Body**: UpdateCaseDto
+
+### **PATCH /cases/by-client/{clientId}/{caseId}**
+**Descripción**: Actualiza parcialmente un caso de un cliente.
+**Roles**: ADMIN, ABOGADO
+**Body**: UpdateCaseDto
+
+### **DELETE /cases/by-client/{clientId}/{caseId}**
+**Descripción**: Elimina un caso de un cliente.
+**Roles**: ADMIN, ABOGADO
+
 ---
 
 ## 📄 Documentos (Documents)
@@ -269,6 +293,30 @@ description: string
 ### **POST /api/invoices/:id/generate-pdf**
 **Descripción**: Generar PDF de factura
 **Roles**: ABOGADO
+
+### **GET /invoices/by-client/{clientId}**
+**Descripción**: Lista todas las facturas de un cliente específico.
+**Roles**: ADMIN, ABOGADO
+**Query Params**: `clientId`
+
+### **POST /invoices/by-client/{clientId}**
+**Descripción**: Crea una nueva factura para un cliente.
+**Roles**: ADMIN, ABOGADO
+**Body**: CreateInvoiceDto
+
+### **PUT /invoices/by-client/{clientId}/{invoiceId}**
+**Descripción**: Actualiza una factura de un cliente.
+**Roles**: ADMIN, ABOGADO
+**Body**: UpdateInvoiceDto
+
+### **PATCH /invoices/by-client/{clientId}/{invoiceId}**
+**Descripción**: Actualiza parcialmente una factura de un cliente.
+**Roles**: ADMIN, ABOGADO
+**Body**: UpdateInvoiceDto
+
+### **DELETE /invoices/by-client/{clientId}/{invoiceId}**
+**Descripción**: Elimina una factura de un cliente.
+**Roles**: ADMIN, ABOGADO
 
 ---
 

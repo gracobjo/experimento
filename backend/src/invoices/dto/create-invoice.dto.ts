@@ -235,4 +235,14 @@ export class CreateInvoiceDto {
   @ValidateNested({ each: true })
   @Type(() => InvoiceItemDto)
   items: InvoiceItemDto[];
+
+  @ApiProperty({
+    description: 'Estado de la factura',
+    example: 'emitida',
+    required: true,
+    type: String,
+  })
+  @IsString()
+  @IsNotEmpty()
+  estado: string;
 } 

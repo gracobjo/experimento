@@ -9,7 +9,8 @@ import {
   UseGuards,
   Request,
   Query,
-  ParseEnumPipe
+  ParseEnumPipe,
+  Put
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { CasesService } from './cases.service';
@@ -447,5 +448,61 @@ export class CasesController {
   @ApiResponse({ status: 403, description: 'No autorizado' })
   remove(@Param('id') id: string, @Request() req) {
     return this.casesService.remove(id, req.user.id, req.user.role);
+  }
+
+  @Get('by-client/:clientId')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Obtener casos por cliente', description: 'Lista todos los casos de un cliente específico (ADMIN y ABOGADO)' })
+  @ApiParam({ name: 'clientId', description: 'ID del cliente' })
+  @ApiResponse({ status: 200, description: 'Lista de casos del cliente' })
+  @Roles(Role.ADMIN, Role.ABOGADO)
+  getCasesByClient(@Param('clientId') clientId: string) {
+    return this.casesService.findByClientId(clientId);
+  }
+
+  @Post('by-client/:clientId')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Crear caso para cliente', description: 'Crea un nuevo caso para un cliente específico (ADMIN y ABOGADO)' })
+  @ApiParam({ name: 'clientId', description: 'ID del cliente' })
+  @ApiBody({ type: CreateCaseDto })
+  @ApiResponse({ status: 201, description: 'Caso creado para el cliente' })
+  @Roles(Role.ADMIN, Role.ABOGADO)
+  createCaseForClient(@Param('clientId') clientId: string, @Body() createCaseDto: CreateCaseDto, @Request() req) {
+    return this.casesService.createForClient(clientId, createCaseDto, req.user.id);
+  }
+
+  @Put('by-client/:clientId/:caseId')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Actualizar caso de cliente', description: 'Actualiza un caso de un cliente específico (ADMIN y ABOGADO)' })
+  @ApiParam({ name: 'clientId', description: 'ID del cliente' })
+  @ApiParam({ name: 'caseId', description: 'ID del caso' })
+  @ApiBody({ type: UpdateCaseDto })
+  @ApiResponse({ status: 200, description: 'Caso actualizado' })
+  @Roles(Role.ADMIN, Role.ABOGADO)
+  updateCaseForClient(@Param('clientId') clientId: string, @Param('caseId') caseId: string, @Body() updateCaseDto: UpdateCaseDto, @Request() req) {
+    return this.casesService.updateForClient(clientId, caseId, updateCaseDto, req.user.id);
+  }
+
+  @Patch('by-client/:clientId/:caseId')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Actualizar parcialmente caso de cliente', description: 'Actualiza parcialmente un caso de un cliente específico (ADMIN y ABOGADO)' })
+  @ApiParam({ name: 'clientId', description: 'ID del cliente' })
+  @ApiParam({ name: 'caseId', description: 'ID del caso' })
+  @ApiBody({ type: UpdateCaseDto })
+  @ApiResponse({ status: 200, description: 'Caso actualizado parcialmente' })
+  @Roles(Role.ADMIN, Role.ABOGADO)
+  patchCaseForClient(@Param('clientId') clientId: string, @Param('caseId') caseId: string, @Body() updateCaseDto: UpdateCaseDto, @Request() req) {
+    return this.casesService.patchForClient(clientId, caseId, updateCaseDto, req.user.id);
+  }
+
+  @Delete('by-client/:clientId/:caseId')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Eliminar caso de cliente', description: 'Elimina un caso de un cliente específico (ADMIN y ABOGADO)' })
+  @ApiParam({ name: 'clientId', description: 'ID del cliente' })
+  @ApiParam({ name: 'caseId', description: 'ID del caso' })
+  @ApiResponse({ status: 200, description: 'Caso eliminado' })
+  @Roles(Role.ADMIN, Role.ABOGADO)
+  deleteCaseForClient(@Param('clientId') clientId: string, @Param('caseId') caseId: string, @Request() req) {
+    return this.casesService.deleteForClient(clientId, caseId, req.user.id);
   }
 } 

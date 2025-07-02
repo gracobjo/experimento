@@ -388,4 +388,87 @@ export class InvoicesService {
       include: { items: true, emisor: true, receptor: true, expediente: true },
     });
   }
+
+  async findByClientId(clientId: string) {
+    return this.prisma.invoice.findMany({
+      where: { receptorId: clientId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async createForClient(clientId: string, createInvoiceDto: CreateInvoiceDto, userId: string) {
+    const {
+      numeroFactura, fechaFactura, tipoFactura, expedienteId, importeTotal, baseImponible, cuotaIVA, tipoIVA,
+      descuento, retencion, aplicarIVA, regimenIvaEmisor, claveOperacion, metodoPago, fechaOperacion, estado,
+      motivoAnulacion, items
+    } = createInvoiceDto;
+    return this.prisma.invoice.create({
+      data: {
+        numeroFactura,
+        fechaFactura: fechaFactura ? new Date(fechaFactura) : undefined,
+        tipoFactura,
+        expedienteId,
+        importeTotal,
+        baseImponible,
+        cuotaIVA,
+        tipoIVA,
+        descuento,
+        retencion,
+        aplicarIVA,
+        regimenIvaEmisor,
+        claveOperacion,
+        metodoPago,
+        fechaOperacion: fechaOperacion ? new Date(fechaOperacion) : undefined,
+        estado,
+        motivoAnulacion,
+        emisorId: userId,
+        receptorId: clientId,
+        items: items ? { create: items } : undefined,
+      },
+      include: { items: true }
+    });
+  }
+
+  async updateForClient(clientId: string, invoiceId: string, updateInvoiceDto: UpdateInvoiceDto, userId: string) {
+    const invoice = await this.prisma.invoice.findFirst({ where: { id: invoiceId, receptorId: clientId } });
+    if (!invoice) throw new Error('Factura no encontrada para este cliente');
+    const {
+      numeroFactura, fechaFactura, tipoFactura, expedienteId, importeTotal, baseImponible, cuotaIVA, tipoIVA,
+      descuento, retencion, aplicarIVA, regimenIvaEmisor, claveOperacion, metodoPago, fechaOperacion, estado,
+      motivoAnulacion
+    } = updateInvoiceDto;
+    return this.prisma.invoice.update({
+      where: { id: invoiceId },
+      data: {
+        numeroFactura,
+        fechaFactura: fechaFactura ? new Date(fechaFactura) : undefined,
+        tipoFactura,
+        expedienteId,
+        importeTotal,
+        baseImponible,
+        cuotaIVA,
+        tipoIVA,
+        descuento,
+        retencion,
+        aplicarIVA,
+        regimenIvaEmisor,
+        claveOperacion,
+        metodoPago,
+        fechaOperacion: fechaOperacion ? new Date(fechaOperacion) : undefined,
+        estado,
+        motivoAnulacion,
+      }
+    });
+  }
+
+  async patchForClient(clientId: string, invoiceId: string, updateInvoiceDto: UpdateInvoiceDto, userId: string) {
+    return this.updateForClient(clientId, invoiceId, updateInvoiceDto, userId);
+  }
+
+  async deleteForClient(clientId: string, invoiceId: string, userId: string) {
+    const invoice = await this.prisma.invoice.findFirst({ where: { id: invoiceId, receptorId: clientId } });
+    if (!invoice) throw new Error('Factura no encontrada para este cliente');
+    await this.prisma.invoice.delete({ where: { id: invoiceId } });
+    return { message: 'Factura eliminada exitosamente' };
+  }
 } 

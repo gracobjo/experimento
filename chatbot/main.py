@@ -1,4 +1,4 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import spacy
@@ -9,7 +9,10 @@ import os
 from dotenv import load_dotenv
 from datetime import datetime
 import random
-from typing import Optional
+from typing import Optional, List, Dict
+import uuid
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 
 # Cargar variables de entorno
 load_dotenv()
@@ -47,6 +50,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Montar archivos estáticos para JS
+if not os.path.exists("static"):
+    os.makedirs("static/js", exist_ok=True)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 class Message(BaseModel):
     text: str
@@ -316,6 +324,106 @@ async def chat(message: Message):
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "service": "chatbot", "timestamp": datetime.now().isoformat()}
+
+# --- TELEASISTENCIA ---
+
+# Base de datos en memoria para sesiones de teleasistencia
+teleassist_sessions_db = {
+    "pending": [],
+    "active": {},
+    "completed": []
+}
+
+class TeleassistSession:
+    def __init__(self, user_id: str, issue: str, remote_tool: str = "TeamViewer"):
+        self.session_id = str(uuid.uuid4())
+        self.user_id = user_id
+        self.issue = issue
+        self.remote_tool = remote_tool
+        self.created_at = datetime.datetime.now().isoformat()
+        self.status = "pending"
+
+# Endpoint para crear sesión
+@app.post("/teleassist/create_session")
+async def create_teleassist_session(user_id: str, issue: str, remote_tool: str = "TeamViewer"):
+    new_session = TeleassistSession(user_id, issue, remote_tool)
+    teleassist_sessions_db["pending"].append(new_session.__dict__)
+    return {"session_id": new_session.session_id}
+
+# Endpoint para listar sesiones
+@app.get("/teleassist/sessions")
+async def list_teleassist_sessions():
+    return {
+        "pending": teleassist_sessions_db["pending"],
+        "active": list(teleassist_sessions_db["active"].values()),
+        "completed": teleassist_sessions_db["completed"]
+    }
+
+# Endpoint para aceptar sesión (mueve de pending a active)
+@app.post("/teleassist/accept_session/{session_id}")
+async def accept_teleassist_session(session_id: str):
+    session = next((s for s in teleassist_sessions_db["pending"] if s["session_id"] == session_id), None)
+    if not session:
+        raise HTTPException(status_code=404, detail="Sesión no encontrada")
+    teleassist_sessions_db["pending"] = [s for s in teleassist_sessions_db["pending"] if s["session_id"] != session_id]
+    session["status"] = "active"
+    teleassist_sessions_db["active"][session_id] = session
+    return {"status": "accepted", "session": session}
+
+# Endpoint para servir el dashboard HTML
+@app.get("/teleassist/dashboard", response_class=HTMLResponse)
+async def teleassist_dashboard():
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Teleasistencia</title>
+        <link href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css' rel='stylesheet'>
+    </head>
+    <body>
+        <div class='container mt-5'>
+            <h1 class='mb-4'>Sistema de Teleasistencia (Demo)</h1>
+            <div class='row'>
+                <div class='col-md-4'>
+                    <div class='card'>
+                        <div class='card-header bg-primary text-white'>Nueva Sesión</div>
+                        <div class='card-body'>
+                            <form id='sessionForm'>
+                                <div class='mb-3'>
+                                    <label class='form-label'>ID de Usuario</label>
+                                    <input type='text' class='form-control' id='userId' required>
+                                </div>
+                                <div class='mb-3'>
+                                    <label class='form-label'>Problema</label>
+                                    <textarea class='form-control' id='issue' rows='3' required></textarea>
+                                </div>
+                                <div class='mb-3'>
+                                    <label class='form-label'>Herramienta Remota</label>
+                                    <select class='form-select' id='remoteTool'>
+                                        <option value='TeamViewer'>TeamViewer</option>
+                                        <option value='AnyDesk'>AnyDesk</option>
+                                        <option value='VNC'>VNC</option>
+                                    </select>
+                                </div>
+                                <button type='submit' class='btn btn-primary'>Crear Sesión</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class='col-md-8'>
+                    <div class='card'>
+                        <div class='card-header bg-info text-white'>Sesiones Pendientes</div>
+                        <div class='card-body'>
+                            <ul class='list-group' id='pendingSessionsList'></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script src='/static/js/teleassist.js'></script>
+    </body>
+    </html>
+    """
 
 if __name__ == "__main__":
     import uvicorn

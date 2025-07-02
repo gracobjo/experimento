@@ -10,4 +10,12 @@ export class UpdateInvoiceDto extends PartialType(CreateInvoiceDto) {
     type: String,
   })
   id?: string;
+
+  @ApiProperty({
+    description: 'Estado de la factura',
+    example: 'emitida',
+    required: false,
+    type: String,
+  })
+  estado?: string;
 } 

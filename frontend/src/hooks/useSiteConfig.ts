@@ -49,7 +49,7 @@ export const useSiteConfig = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get('/api/site-config/public');
+      const response = await axios.get('/site-config/public');
       const configsMap: Record<string, string> = {};
       response.data.forEach((config: SiteConfig) => {
         configsMap[config.key] = config.value;
@@ -78,7 +78,7 @@ export const useSiteConfig = () => {
 
   const updateConfig = async (key: string, value: string) => {
     try {
-      await axios.patch(`/api/site-config/key/${key}`, { value });
+      await axios.patch(`/site-config/key/${key}`, { value });
       setConfigs(prev => ({ ...prev, [key]: value }));
       return true;
     } catch (err) {
@@ -112,7 +112,7 @@ export const useMenuConfig = (role: 'ADMIN' | 'ABOGADO' | 'CLIENTE') => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get(`/api/menu-config/role/${role}`);
+      const response = await axios.get(`/menu-config/role/${role}`);
       setMenuConfig(response.data);
     } catch (err) {
       console.error('Error fetching menu config:', err);

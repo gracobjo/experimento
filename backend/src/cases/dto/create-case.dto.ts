@@ -38,4 +38,14 @@ export class CreateCaseDto {
   @IsUUID()
   @IsNotEmpty()
   lawyerId: string;
+
+  @ApiProperty({
+    description: 'Estado del caso',
+    example: 'ABIERTO',
+    type: String,
+    enum: ['ABIERTO', 'EN_PROCESO', 'CERRADO'],
+  })
+  @IsString()
+  @IsNotEmpty()
+  status: string;
 } 

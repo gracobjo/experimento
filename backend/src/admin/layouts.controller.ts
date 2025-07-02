@@ -9,7 +9,8 @@ import {
   UseGuards,
   Request,
   HttpCode,
-  HttpStatus
+  HttpStatus,
+  HttpException
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -45,8 +46,12 @@ export class LayoutsController {
     status: 404,
     description: 'No hay layout activo para la home'
   })
-  async getActiveHomeLayout(): Promise<LayoutConfigDto | null> {
-    return this.layoutsService.findActiveLayout('home');
+  async getActiveHomeLayout(): Promise<LayoutConfigDto> {
+    const layout = await this.layoutsService.findActiveLayout('home');
+    if (!layout) {
+      throw new HttpException({ message: 'No hay layout activo para la home' }, HttpStatus.NOT_FOUND);
+    }
+    return layout;
   }
 }
 

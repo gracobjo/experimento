@@ -41,4 +41,15 @@ export class UpdateCaseDto {
   @IsUUID()
   @IsOptional()
   lawyerId?: string;
+
+  @ApiProperty({
+    description: 'Estado del caso',
+    example: 'ABIERTO',
+    required: false,
+    type: String,
+    enum: ['ABIERTO', 'EN_PROCESO', 'CERRADO'],
+  })
+  @IsString()
+  @IsOptional()
+  status?: string;
 } 

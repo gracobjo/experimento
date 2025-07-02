@@ -337,4 +337,60 @@ export class InvoicesController {
     }
     return this.invoicesService.annul(id, body.motivoAnulacion, req.user.id);
   }
+
+  @Get('by-client/:clientId')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Obtener facturas por cliente', description: 'Lista todas las facturas de un cliente específico (ADMIN y ABOGADO)' })
+  @ApiParam({ name: 'clientId', description: 'ID del cliente' })
+  @ApiResponse({ status: 200, description: 'Lista de facturas del cliente' })
+  @Roles(Role.ADMIN, Role.ABOGADO)
+  getInvoicesByClient(@Param('clientId') clientId: string) {
+    return this.invoicesService.findByClientId(clientId);
+  }
+
+  @Post('by-client/:clientId')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Crear factura para cliente', description: 'Crea una nueva factura para un cliente específico (ADMIN y ABOGADO)' })
+  @ApiParam({ name: 'clientId', description: 'ID del cliente' })
+  @ApiBody({ type: CreateInvoiceDto })
+  @ApiResponse({ status: 201, description: 'Factura creada para el cliente' })
+  @Roles(Role.ADMIN, Role.ABOGADO)
+  createInvoiceForClient(@Param('clientId') clientId: string, @Body() createInvoiceDto: CreateInvoiceDto, @Request() req) {
+    return this.invoicesService.createForClient(clientId, createInvoiceDto, req.user.id);
+  }
+
+  @Put('by-client/:clientId/:invoiceId')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Actualizar factura de cliente', description: 'Actualiza una factura de un cliente específico (ADMIN y ABOGADO)' })
+  @ApiParam({ name: 'clientId', description: 'ID del cliente' })
+  @ApiParam({ name: 'invoiceId', description: 'ID de la factura' })
+  @ApiBody({ type: UpdateInvoiceDto })
+  @ApiResponse({ status: 200, description: 'Factura actualizada' })
+  @Roles(Role.ADMIN, Role.ABOGADO)
+  updateInvoiceForClient(@Param('clientId') clientId: string, @Param('invoiceId') invoiceId: string, @Body() updateInvoiceDto: UpdateInvoiceDto, @Request() req) {
+    return this.invoicesService.updateForClient(clientId, invoiceId, updateInvoiceDto, req.user.id);
+  }
+
+  @Patch('by-client/:clientId/:invoiceId')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Actualizar parcialmente factura de cliente', description: 'Actualiza parcialmente una factura de un cliente específico (ADMIN y ABOGADO)' })
+  @ApiParam({ name: 'clientId', description: 'ID del cliente' })
+  @ApiParam({ name: 'invoiceId', description: 'ID de la factura' })
+  @ApiBody({ type: UpdateInvoiceDto })
+  @ApiResponse({ status: 200, description: 'Factura actualizada parcialmente' })
+  @Roles(Role.ADMIN, Role.ABOGADO)
+  patchInvoiceForClient(@Param('clientId') clientId: string, @Param('invoiceId') invoiceId: string, @Body() updateInvoiceDto: UpdateInvoiceDto, @Request() req) {
+    return this.invoicesService.patchForClient(clientId, invoiceId, updateInvoiceDto, req.user.id);
+  }
+
+  @Delete('by-client/:clientId/:invoiceId')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Eliminar factura de cliente', description: 'Elimina una factura de un cliente específico (ADMIN y ABOGADO)' })
+  @ApiParam({ name: 'clientId', description: 'ID del cliente' })
+  @ApiParam({ name: 'invoiceId', description: 'ID de la factura' })
+  @ApiResponse({ status: 200, description: 'Factura eliminada' })
+  @Roles(Role.ADMIN, Role.ABOGADO)
+  deleteInvoiceForClient(@Param('clientId') clientId: string, @Param('invoiceId') invoiceId: string, @Request() req) {
+    return this.invoicesService.deleteForClient(clientId, invoiceId, req.user.id);
+  }
 } 

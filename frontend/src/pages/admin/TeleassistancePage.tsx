@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import axios from '../../api/axios';
+import { useNavigate } from 'react-router-dom';
 
 interface TeleassistanceSession {
   id: string;
@@ -40,6 +41,15 @@ interface SessionStats {
   averageDuration: number;
 }
 
+interface RemoteTool {
+  id: string;
+  name: string;
+  description: string;
+  downloadUrl: string;
+  features: string[];
+  instructions: string[];
+}
+
 const TeleassistancePage: React.FC = () => {
   const { user } = useAuth();
   const [sessions, setSessions] = useState<TeleassistanceSession[]>([]);
@@ -47,26 +57,37 @@ const TeleassistancePage: React.FC = () => {
   const [stats, setStats] = useState<SessionStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'pending' | 'all' | 'stats'>('pending');
+  const [tools, setTools] = useState<RemoteTool[]>([]);
+  const [selectedTool, setSelectedTool] = useState<string>('');
+  const [sessionData, setSessionData] = useState<any>({});
+  const [toolLoading, setToolLoading] = useState(false);
 
   useEffect(() => {
     loadData();
-  }, []);
+    setToolLoading(true);
+    axios.get('/teleassistance/remote-tools')
+      .then(res => setTools(res.data))
+      .catch(() => setTools([]))
+      .finally(() => setToolLoading(false));
+  }, [user]);
 
   const loadData = async () => {
     try {
       setLoading(true);
       
       // Cargar sesiones pendientes
-      const pendingResponse = await axios.get('/api/teleassistance/sessions/pending');
+      const pendingResponse = await axios.get('/teleassistance/sessions/pending');
       setPendingSessions(pendingResponse.data);
 
       // Cargar todas las sesiones del asistente
-      const sessionsResponse = await axios.get('/api/teleassistance/sessions/assistant/' + user?.id);
-      setSessions(sessionsResponse.data);
+      if (user) {
+        const sessionsResponse = await axios.get('/teleassistance/sessions/assistant/' + user.id);
+        setSessions(sessionsResponse.data);
+      }
 
       // Cargar estadísticas (solo para admin)
       if (user?.role === 'ADMIN') {
-        const statsResponse = await axios.get('/api/teleassistance/stats');
+        const statsResponse = await axios.get('/teleassistance/stats');
         setStats(statsResponse.data);
       }
     } catch (error) {
@@ -78,7 +99,7 @@ const TeleassistancePage: React.FC = () => {
 
   const startSession = async (sessionId: string) => {
     try {
-      await axios.post(`/api/teleassistance/sessions/${sessionId}/start`);
+      await axios.post(`/teleassistance/sessions/${sessionId}/start`);
       loadData(); // Recargar datos
     } catch (error) {
       console.error('Error starting session:', error);
@@ -87,7 +108,7 @@ const TeleassistancePage: React.FC = () => {
 
   const endSession = async (sessionId: string, resolution?: string) => {
     try {
-      await axios.post(`/api/teleassistance/sessions/${sessionId}/end`, { resolution });
+      await axios.post(`/teleassistance/sessions/${sessionId}/end`, { resolution });
       loadData(); // Recargar datos
     } catch (error) {
       console.error('Error ending session:', error);
@@ -132,6 +153,49 @@ const TeleassistancePage: React.FC = () => {
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('es-ES');
+  };
+
+  const renderToolFields = () => {
+    if (!selectedTool) return null;
+    switch (selectedTool) {
+      case 'teamviewer-quicksupport':
+        return (
+          <>
+            <label>ID de TeamViewer
+              <input type="text" required value={sessionData.teamviewerId || ''} onChange={e => setSessionData({ ...sessionData, teamviewerId: e.target.value })} />
+            </label>
+            <label>Contraseña
+              <input type="text" required value={sessionData.teamviewerPassword || ''} onChange={e => setSessionData({ ...sessionData, teamviewerPassword: e.target.value })} />
+            </label>
+          </>
+        );
+      case 'remotely-anywhere':
+        return (
+          <>
+            <label>Código de acceso
+              <input type="text" required value={sessionData.remotelyCode || ''} onChange={e => setSessionData({ ...sessionData, remotelyCode: e.target.value })} />
+            </label>
+          </>
+        );
+      case 'anydesk':
+        return (
+          <>
+            <label>Código de AnyDesk
+              <input type="text" required value={sessionData.anydeskCode || ''} onChange={e => setSessionData({ ...sessionData, anydeskCode: e.target.value })} />
+            </label>
+          </>
+        );
+      case 'chrome-remote-desktop':
+        return (
+          <>
+            <label>Código de acceso
+              <input type="text" required value={sessionData.chromeCode || ''} onChange={e => setSessionData({ ...sessionData, chromeCode: e.target.value })} />
+            </label>
+          </>
+        );
+      default:
+        return null;
+    }
   };
 
   if (loading) {
@@ -394,6 +458,33 @@ const TeleassistancePage: React.FC = () => {
                 </div>
               </div>
             )}
+
+            {/* NUEVO: Sección para conectar con el cliente autenticado */}
+            <div className="bg-white rounded-lg shadow p-6 mb-8">
+              <h2 className="text-xl font-bold mb-4">Conectar con el cliente autenticado</h2>
+              <label>Herramienta de escritorio remoto
+                <select required value={selectedTool} onChange={e => setSelectedTool(e.target.value)}>
+                  <option value="">Selecciona una herramienta</option>
+                  {tools.map(t => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </label>
+              {renderToolFields()}
+              {selectedTool && (
+                <div style={{ marginTop: 24, background: '#f8f8f8', borderRadius: 6, padding: 16 }}>
+                  <h4>Instrucciones para {tools.find(t => t.id === selectedTool)?.name}</h4>
+                  <ul>
+                    {tools.find(t => t.id === selectedTool)?.instructions.map((inst, i) => (
+                      <li key={i}>{inst}</li>
+                    ))}
+                  </ul>
+                  <a href={tools.find(t => t.id === selectedTool)?.downloadUrl} target="_blank" rel="noopener noreferrer">
+                    Descargar / Abrir herramienta
+                  </a>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

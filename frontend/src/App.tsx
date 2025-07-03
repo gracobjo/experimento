@@ -54,6 +54,11 @@ import AppointmentsPage from './pages/client/AppointmentsPage';
 import DashboardLawyer from './pages/lawyer/DashboardLawyer';
 import UnauthorizedPage from './pages/UnauthorizedPage';
 
+// Importar páginas legales
+import PrivacyPage from './pages/PrivacyPage';
+import TermsPage from './pages/TermsPage';
+import CookiesPage from './pages/CookiesPage';
+
 // Importar páginas de teleasistencia
 import ClientTeleassistancePage from './pages/client/TeleassistancePage';
 import TeleassistanceRequestPage from './pages/client/TeleassistanceRequestPage';
@@ -69,6 +74,9 @@ function App() {
             <Route path="contact" element={<Contact />} />
             <Route path="login" element={<Login />} />
             <Route path="register" element={<Register />} />
+            <Route path="privacidad" element={<PrivacyPage />} />
+            <Route path="terminos" element={<TermsPage />} />
+            <Route path="cookies" element={<CookiesPage />} />
 
             {/* Protected routes */}
             <Route element={<PrivateRoute />}>

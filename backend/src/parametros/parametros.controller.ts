@@ -8,12 +8,91 @@ import { Role } from '@prisma/client';
 
 @ApiTags('parametros')
 @Controller('parametros')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('ADMIN')
 export class ParametrosController {
   constructor(private readonly parametrosService: ParametrosService) {}
 
+  // Endpoints públicos para el frontend
+  @Get('contact')
+  @ApiOperation({ 
+    summary: 'Obtener parámetros de contacto',
+    description: 'Devuelve los parámetros de contacto para mostrar en el frontend'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Parámetros de contacto',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          clave: { type: 'string' },
+          valor: { type: 'string' },
+          etiqueta: { type: 'string' },
+          tipo: { type: 'string' }
+        }
+      }
+    }
+  })
+  getContactParams() {
+    return this.parametrosService.findContactParams();
+  }
+
+  @Get('legal')
+  @ApiOperation({ 
+    summary: 'Obtener contenido legal',
+    description: 'Devuelve el contenido legal (privacidad, términos, cookies, copyright)'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Contenido legal',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          clave: { type: 'string' },
+          valor: { type: 'string' },
+          etiqueta: { type: 'string' },
+          tipo: { type: 'string' }
+        }
+      }
+    }
+  })
+  getLegalContent() {
+    return this.parametrosService.findLegalContent();
+  }
+
+  @Get('legal/:clave')
+  @ApiOperation({ 
+    summary: 'Obtener contenido legal específico',
+    description: 'Devuelve un contenido legal específico por clave'
+  })
+  @ApiParam({ name: 'clave', description: 'Clave del contenido legal', type: 'string' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Contenido legal encontrado',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        clave: { type: 'string' },
+        valor: { type: 'string' },
+        etiqueta: { type: 'string' },
+        tipo: { type: 'string' }
+      }
+    }
+  })
+  @ApiResponse({ status: 404, description: 'Contenido no encontrado' })
+  getLegalContentByKey(@Param('clave') clave: string) {
+    return this.parametrosService.findByClave(clave);
+  }
+
+  // Endpoints protegidos para administradores
   @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ 
     summary: 'Obtener todos los parámetros',
@@ -44,6 +123,8 @@ export class ParametrosController {
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ 
     summary: 'Obtener parámetro por ID',
@@ -73,6 +154,8 @@ export class ParametrosController {
   }
 
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ 
     summary: 'Crear nuevo parámetro',
@@ -101,7 +184,7 @@ export class ParametrosController {
           type: 'string', 
           description: 'Tipo de dato',
           example: 'string',
-          enum: ['string', 'number', 'email', 'image', 'boolean']
+          enum: ['string', 'number', 'email', 'image', 'boolean', 'text', 'html', 'url']
         }
       },
       required: ['clave', 'valor', 'etiqueta', 'tipo']
@@ -131,6 +214,8 @@ export class ParametrosController {
   }
 
   @Put(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ 
     summary: 'Actualizar parámetro',
@@ -155,7 +240,7 @@ export class ParametrosController {
           type: 'string', 
           description: 'Nuevo tipo de dato',
           example: 'string',
-          enum: ['string', 'number', 'email', 'image', 'boolean']
+          enum: ['string', 'number', 'email', 'image', 'boolean', 'text', 'html', 'url']
         }
       }
     }
@@ -183,7 +268,54 @@ export class ParametrosController {
     return this.parametrosService.update(id, data);
   }
 
+  @Put('clave/:clave')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ 
+    summary: 'Actualizar parámetro por clave',
+    description: 'Actualiza un parámetro existente por su clave'
+  })
+  @ApiParam({ name: 'clave', description: 'Clave del parámetro', type: 'string' })
+  @ApiBody({ 
+    schema: {
+      type: 'object',
+      properties: {
+        valor: { 
+          type: 'string', 
+          description: 'Nuevo valor del parámetro',
+          example: 'nuevo@email.com'
+        }
+      },
+      required: ['valor']
+    }
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Parámetro actualizado exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        clave: { type: 'string' },
+        valor: { type: 'string' },
+        etiqueta: { type: 'string' },
+        tipo: { type: 'string' },
+        updatedAt: { type: 'string', format: 'date-time' }
+      }
+    }
+  })
+  @ApiResponse({ status: 404, description: 'Parámetro no encontrado' })
+  @ApiResponse({ status: 400, description: 'Datos inválidos' })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
+  @ApiResponse({ status: 403, description: 'Acceso prohibido' })
+  updateByClave(@Param('clave') clave: string, @Body() data: { valor: string }) {
+    return this.parametrosService.updateByClave(clave, data.valor);
+  }
+
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ 
     summary: 'Eliminar parámetro',
@@ -196,5 +328,20 @@ export class ParametrosController {
   @ApiResponse({ status: 403, description: 'Acceso prohibido' })
   remove(@Param('id') id: string) {
     return this.parametrosService.remove(id);
+  }
+
+  @Post('initialize')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ 
+    summary: 'Inicializar parámetros por defecto',
+    description: 'Crea o actualiza los parámetros por defecto del sistema'
+  })
+  @ApiResponse({ status: 200, description: 'Parámetros inicializados exitosamente' })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
+  @ApiResponse({ status: 403, description: 'Acceso prohibido' })
+  initializeDefaultParams() {
+    return this.parametrosService.initializeDefaultParams();
   }
 } 

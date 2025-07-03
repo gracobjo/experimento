@@ -2,12 +2,23 @@ import { Outlet, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ChatWidget from './ChatWidget';
 import Notifications from './Notifications';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppConfig } from '../hooks/useSiteConfig';
+import axios from '../api/axios';
+
+interface ContactParam {
+  id: string;
+  clave: string;
+  valor: string;
+  etiqueta: string;
+  tipo: string;
+}
 
 const Layout = () => {
   const { user, logout } = useAuth();
   const [openBilling, setOpenBilling] = useState(false);
+  const [contactParams, setContactParams] = useState<ContactParam[]>([]);
+  const [copyrightText, setCopyrightText] = useState('© 2024 Despacho Legal. Todos los derechos reservados.');
 
   const isAdmin = user?.role === 'ADMIN';
   const isLawyer = user?.role === 'ABOGADO';
@@ -132,6 +143,36 @@ const Layout = () => {
 
   const currentMenuItems = configLoading ? getDefaultMenuItems() : menuItems;
 
+  // Obtener parámetros de contacto y contenido legal
+  useEffect(() => {
+    const fetchContactParams = async () => {
+      try {
+        const [contactResponse, legalResponse] = await Promise.all([
+          axios.get('/parametros/contact'),
+          axios.get('/parametros/legal')
+        ]);
+        
+        setContactParams(contactResponse.data);
+        
+        // Buscar el texto de copyright
+        const copyrightParam = legalResponse.data.find((param: ContactParam) => param.clave === 'COPYRIGHT_TEXT');
+        if (copyrightParam) {
+          setCopyrightText(copyrightParam.valor);
+        }
+      } catch (error) {
+        console.error('Error fetching contact and legal params:', error);
+      }
+    };
+
+    fetchContactParams();
+  }, []);
+
+  // Función para obtener valor de parámetro por clave
+  const getParamValue = (clave: string): string => {
+    const param = contactParams.find(p => p.clave === clave);
+    return param ? param.valor : '';
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Navigation */}
@@ -211,11 +252,14 @@ const Layout = () => {
               <div>
                 <h3 className="text-lg font-semibold mb-4">Contacto</h3>
                 <div className="space-y-2 text-sm">
-                  {contactEmail && (
-                    <p>📧 {contactEmail}</p>
+                  {getParamValue('CONTACT_INFO') && (
+                    <p className="text-gray-300 mb-2">{getParamValue('CONTACT_INFO')}</p>
                   )}
-                  {contactPhone && (
-                    <p>📞 {contactPhone}</p>
+                  {getParamValue('CONTACT_EMAIL') && (
+                    <p>📧 {getParamValue('CONTACT_EMAIL')}</p>
+                  )}
+                  {getParamValue('CONTACT_PHONE_PREFIX') && getParamValue('CONTACT_PHONE') && (
+                    <p>📞 {getParamValue('CONTACT_PHONE_PREFIX')} {getParamValue('CONTACT_PHONE')}</p>
                   )}
                 </div>
               </div>
@@ -230,6 +274,9 @@ const Layout = () => {
                   <Link to="/terminos" className="hover:text-gray-300 block">
                     Términos de Servicio
                   </Link>
+                  <Link to="/cookies" className="hover:text-gray-300 block">
+                    Política de Cookies
+                  </Link>
                 </div>
               </div>
 
@@ -237,9 +284,9 @@ const Layout = () => {
               <div>
                 <h3 className="text-lg font-semibold mb-4">Síguenos</h3>
                 <div className="flex space-x-4">
-                  {socialFacebook && (
+                  {getParamValue('SOCIAL_FACEBOOK') && (
                     <a 
-                      href={socialFacebook} 
+                      href={getParamValue('SOCIAL_FACEBOOK')} 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="text-gray-300 hover:text-white"
@@ -247,9 +294,9 @@ const Layout = () => {
                       📘 Facebook
                     </a>
                   )}
-                  {socialTwitter && (
+                  {getParamValue('SOCIAL_TWITTER') && (
                     <a 
-                      href={socialTwitter} 
+                      href={getParamValue('SOCIAL_TWITTER')} 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="text-gray-300 hover:text-white"
@@ -257,9 +304,9 @@ const Layout = () => {
                       🐦 Twitter
                     </a>
                   )}
-                  {socialLinkedin && (
+                  {getParamValue('SOCIAL_LINKEDIN') && (
                     <a 
-                      href={socialLinkedin} 
+                      href={getParamValue('SOCIAL_LINKEDIN')} 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="text-gray-300 hover:text-white"
@@ -267,9 +314,9 @@ const Layout = () => {
                       💼 LinkedIn
                     </a>
                   )}
-                  {socialInstagram && (
+                  {getParamValue('SOCIAL_INSTAGRAM') && (
                     <a 
-                      href={socialInstagram} 
+                      href={getParamValue('SOCIAL_INSTAGRAM')} 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="text-gray-300 hover:text-white"
@@ -282,7 +329,7 @@ const Layout = () => {
             </div>
             
             <div className="mt-8 pt-8 border-t border-gray-700 text-center">
-              <p>&copy; 2024 {siteName}. Todos los derechos reservados.</p>
+              <p>{copyrightText}</p>
             </div>
           </div>
         </footer>

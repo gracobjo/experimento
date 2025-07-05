@@ -1,0 +1,10 @@
+Manifest-Version: 1.0
+Ant-Version: Apache Ant 1.7.0
+Created-By: 1.4.2_17-b06 (Sun Microsystems Inc.)
+Built-By: mullan
+
+Name: xmlsec
+Implementation-Title: Apache-XML-Security-J
+Implementation-Version: 1.4.2 June 23 2008
+Implementation-Vendor: Apache Software Foundation
+

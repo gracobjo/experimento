@@ -1,16 +1,156 @@
 # Documentación de Testing - Sistema de Gestión Legal
 
 ## 📋 Índice
-1. [Configuración del Entorno de Testing](#configuración-del-entorno-de-testing)
-2. [Estructura de Tests](#estructura-de-tests)
-3. [Tipos de Tests](#tipos-de-tests)
-4. [Cómo Funcionan los Tests](#cómo-funcionan-los-tests)
-5. [Patrones de Testing](#patrones-de-testing)
-6. [Cómo Crear Nuevos Tests](#cómo-crear-nuevos-tests)
-7. [Ejemplos Prácticos](#ejemplos-prácticos)
-8. [Comandos de Testing](#comandos-de-testing)
-9. [Cobertura de Tests](#cobertura-de-tests)
-10. [Mejores Prácticas](#mejores-prácticas)
+1. [Tests Existentes](#tests-existentes)
+2. [Configuración del Entorno de Testing](#configuración-del-entorno-de-testing)
+3. [Estructura de Tests](#estructura-de-tests)
+4. [Tipos de Tests](#tipos-de-tests)
+5. [Cómo Funcionan los Tests](#cómo-funcionan-los-tests)
+6. [Patrones de Testing](#patrones-de-testing)
+7. [Cómo Crear Nuevos Tests](#cómo-crear-nuevos-tests)
+8. [Ejemplos Prácticos](#ejemplos-prácticos)
+9. [Comandos de Testing](#comandos-de-testing)
+10. [Cobertura de Tests](#cobertura-de-tests)
+11. [Mejores Prácticas](#mejores-prácticas)
+12. [Solución de Problemas](#solución-de-problemas)
+
+---
+
+## 🧪 Tests Existentes
+
+### 📁 Ubicación de los Tests
+Todos los tests se encuentran en el directorio `backend/src/` junto a sus archivos correspondientes:
+
+```
+backend/src/
+├── cases/
+│   ├── cases.service.spec.ts      ✅ Completado
+│   └── cases.controller.spec.ts   ✅ Completado
+├── documents/
+│   ├── documents.service.spec.ts  ✅ Completado
+│   └── documents.controller.spec.ts ✅ Completado
+├── invoices/
+│   ├── invoices.service.spec.ts   ✅ Completado
+│   └── invoices.controller.spec.ts ✅ Completado
+├── tasks/
+│   ├── tasks.service.spec.ts      ✅ Completado
+│   └── tasks.controller.spec.ts   ✅ Completado
+└── users/
+    ├── users.service.spec.ts      ⚠️  Error de archivo binario
+    └── users.controller.spec.ts   ❌ Pendiente
+```
+
+### 📊 Estado de los Tests
+
+#### ✅ Tests Completados y Funcionando
+- **Cases Module**: 100% funcional
+  - `cases.service.spec.ts` (165 líneas)
+  - `cases.controller.spec.ts` (50 líneas)
+- **Invoices Module**: 100% funcional
+  - `invoices.service.spec.ts` (101 líneas)
+  - `invoices.controller.spec.ts` (81 líneas)
+- **Tasks Module**: 100% funcional
+  - `tasks.service.spec.ts` (97 líneas)
+  - `tasks.controller.spec.ts` (73 líneas)
+
+#### ⚠️ Tests con Problemas Menores
+- **Documents Module**: 95% funcional
+  - `documents.service.spec.ts` (478 líneas)
+  - `documents.controller.spec.ts` (270 líneas)
+  - Problemas menores con mocks de Prisma
+
+#### ❌ Tests Pendientes
+- **Users Module**: Requiere recreación
+- **Auth Module**: No implementado
+- **Admin Module**: No implementado
+- **Reports Module**: No implementado
+- **Appointments Module**: No implementado
+- **Contact Module**: No implementado
+- **Teleassistance Module**: No implementado
+- **Provision-fondos Module**: No implementado
+- **Parametros Module**: No implementado
+- **Chat Module**: No implementado
+
+---
+
+## 🚀 Comandos de Testing
+
+### 📍 Ubicación para Ejecutar Tests
+```bash
+cd backend
+```
+
+### 🔧 Comandos Principales
+
+#### Ejecutar Todos los Tests
+```bash
+npm test
+```
+
+#### Ejecutar Tests en Modo Watch (Desarrollo)
+```bash
+npm run test:watch
+```
+
+#### Ejecutar Tests con Cobertura
+```bash
+npm run test:cov
+```
+
+#### Ejecutar Tests E2E
+```bash
+npm run test:e2e
+```
+
+### 🎯 Comandos Específicos
+
+#### Ejecutar Tests de un Módulo Específico
+```bash
+# Tests del módulo cases
+npm test -- cases
+
+# Tests del módulo invoices
+npm test -- invoices
+
+# Tests del módulo tasks
+npm test -- tasks
+
+# Tests del módulo documents
+npm test -- documents
+```
+
+#### Ejecutar un Archivo de Test Específico
+```bash
+# Test del servicio de cases
+npm test -- cases.service.spec.ts
+
+# Test del controlador de invoices
+npm test -- invoices.controller.spec.ts
+
+# Test del servicio de tasks
+npm test -- tasks.service.spec.ts
+```
+
+#### Ejecutar Tests con Patrón
+```bash
+# Todos los tests de servicios
+npm test -- --testNamePattern="service"
+
+# Todos los tests de controladores
+npm test -- --testNamePattern="controller"
+
+# Tests que contengan "create" en el nombre
+npm test -- --testNamePattern="create"
+```
+
+### 📈 Ver Cobertura de Tests
+```bash
+# Generar reporte de cobertura
+npm run test:cov
+
+# Ver reporte en navegador (si está disponible)
+open coverage/lcov-report/index.html
+```
 
 ---
 
@@ -200,412 +340,772 @@ it('should return user and token on successful login', async () => {
 mockPrismaService = {
   user: {
     findUnique: jest.fn(),
-    findFirst: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
     findMany: jest.fn(),
-    // ... todos los métodos requeridos
-  } as any,
-};
+  },
+  case: {
+    findUnique: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    findMany: jest.fn(),
+  },
+  $transaction: jest.fn(),
+  $connect: jest.fn(),
+  $disconnect: jest.fn(),
+} as any;
 ```
 
 ---
 
-## 🚀 Cómo Crear Nuevos Tests
+## 🆕 Cómo Crear Nuevos Tests
 
-### Paso 1: Identificar qué testear
+### 📋 Pasos para Crear Tests de un Nuevo Módulo
+
+#### 1. Crear el Archivo de Test del Servicio
 ```bash
-# Ejemplo: Crear test para UsersService
-touch src/users/users.service.spec.ts
+# Navegar al directorio del módulo
+cd backend/src/[nombre-modulo]
+
+# Crear archivo de test del servicio
+touch [nombre-modulo].service.spec.ts
 ```
 
-### Paso 2: Estructura básica del test
+#### 2. Crear el Archivo de Test del Controlador
+```bash
+# Crear archivo de test del controlador
+touch [nombre-modulo].controller.spec.ts
+```
+
+#### 3. Estructura Básica para Test de Servicio
 ```typescript
 import { Test, TestingModule } from '@nestjs/testing';
-import { UsersService } from './users.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { [NombreModulo]Service } from './[nombre-modulo].service';
 
-describe('UsersService', () => {
-  let service: UsersService;
+describe('[NombreModulo]Service', () => {
+  let service: [NombreModulo]Service;
   let mockPrismaService: Partial<PrismaService>;
 
   beforeEach(async () => {
-    // Configurar mocks
+    // Mock de PrismaService
     mockPrismaService = {
-      user: {
+      [modelo]: {
         findUnique: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
-      } as any,
-    };
+        delete: jest.fn(),
+        findMany: jest.fn(),
+      },
+      $transaction: jest.fn(),
+    } as any;
 
-    // Crear módulo de testing
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        UsersService,
+        [NombreModulo]Service,
         { provide: PrismaService, useValue: mockPrismaService }
       ],
     }).compile();
 
-    service = module.get<UsersService>(UsersService);
+    service = module.get<[NombreModulo]Service>([NombreModulo]Service);
   });
 
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
-  // Tests específicos aquí...
-});
-```
+  // Tests para cada método del servicio
+  describe('create', () => {
+    it('should create a new [item]', async () => {
+      // Arrange
+      const createDto = { /* datos de prueba */ };
+      const expectedResult = { id: 1, ...createDto };
+      mockPrismaService.[modelo].create.mockResolvedValue(expectedResult);
 
-### Paso 3: Escribir casos de test
-```typescript
-describe('findByEmail', () => {
-  it('should return user when email exists', async () => {
-    // Arrange
-    const email = 'test@example.com';
-    const mockUser = { id: 1, email, name: 'Test User' };
-    mockPrismaService.user.findUnique.mockResolvedValue(mockUser);
+      // Act
+      const result = await service.create(createDto);
 
-    // Act
-    const result = await service.findByEmail(email);
-
-    // Assert
-    expect(result).toEqual(mockUser);
-    expect(mockPrismaService.user.findUnique).toHaveBeenCalledWith({
-      where: { email }
+      // Assert
+      expect(result).toEqual(expectedResult);
+      expect(mockPrismaService.[modelo].create).toHaveBeenCalledWith({
+        data: createDto,
+      });
     });
   });
 
-  it('should return null when email does not exist', async () => {
-    // Arrange
-    const email = 'nonexistent@example.com';
-    mockPrismaService.user.findUnique.mockResolvedValue(null);
+  // Más tests...
+});
+```
 
-    // Act
-    const result = await service.findByEmail(email);
+#### 4. Estructura Básica para Test de Controlador
+```typescript
+import { Test, TestingModule } from '@nestjs/testing';
+import { [NombreModulo]Controller } from './[nombre-modulo].controller';
+import { [NombreModulo]Service } from './[nombre-modulo].service';
 
-    // Assert
-    expect(result).toBeNull();
+describe('[NombreModulo]Controller', () => {
+  let controller: [NombreModulo]Controller;
+  let mock[NombreModulo]Service: Partial<[NombreModulo]Service>;
+
+  beforeEach(async () => {
+    mock[NombreModulo]Service = {
+      create: jest.fn(),
+      findAll: jest.fn(),
+      findOne: jest.fn(),
+      update: jest.fn(),
+      remove: jest.fn(),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [[NombreModulo]Controller],
+      providers: [
+        { provide: [NombreModulo]Service, useValue: mock[NombreModulo]Service }
+      ],
+    }).compile();
+
+    controller = module.get<[NombreModulo]Controller>([NombreModulo]Controller);
+  });
+
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
+  // Tests para cada endpoint
+  describe('POST /[nombre-modulo]', () => {
+    it('should create a new [item]', async () => {
+      // Arrange
+      const createDto = { /* datos de prueba */ };
+      const expectedResult = { id: 1, ...createDto };
+      const req = { user: { id: 1, role: 'ADMIN' } } as any;
+      mock[NombreModulo]Service.create.mockResolvedValue(expectedResult);
+
+      // Act
+      const result = await controller.create(createDto, req);
+
+      // Assert
+      expect(result).toEqual(expectedResult);
+      expect(mock[NombreModulo]Service.create).toHaveBeenCalledWith(createDto, req.user);
+    });
+  });
+
+  // Más tests...
+});
+```
+
+### 🔧 Plantillas Rápidas
+
+#### Plantilla para Test de Servicio
+```bash
+# Crear plantilla básica
+cat > [nombre-modulo].service.spec.ts << 'EOF'
+import { Test, TestingModule } from '@nestjs/testing';
+import { PrismaService } from '../prisma/prisma.service';
+import { [NombreModulo]Service } from './[nombre-modulo].service';
+
+describe('[NombreModulo]Service', () => {
+  let service: [NombreModulo]Service;
+  let mockPrismaService: Partial<PrismaService>;
+
+  beforeEach(async () => {
+    mockPrismaService = {
+      $transaction: jest.fn(),
+    } as any;
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        [NombreModulo]Service,
+        { provide: PrismaService, useValue: mockPrismaService }
+      ],
+    }).compile();
+
+    service = module.get<[NombreModulo]Service>([NombreModulo]Service);
+  });
+
+  it('should be defined', () => {
+    expect(service).toBeDefined();
   });
 });
+EOF
+```
+
+#### Plantilla para Test de Controlador
+```bash
+# Crear plantilla básica
+cat > [nombre-modulo].controller.spec.ts << 'EOF'
+import { Test, TestingModule } from '@nestjs/testing';
+import { [NombreModulo]Controller } from './[nombre-modulo].controller';
+import { [NombreModulo]Service } from './[nombre-modulo].service';
+
+describe('[NombreModulo]Controller', () => {
+  let controller: [NombreModulo]Controller;
+  let mock[NombreModulo]Service: Partial<[NombreModulo]Service>;
+
+  beforeEach(async () => {
+    mock[NombreModulo]Service = {};
+
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [[NombreModulo]Controller],
+      providers: [
+        { provide: [NombreModulo]Service, useValue: mock[NombreModulo]Service }
+      ],
+    }).compile();
+
+    controller = module.get<[NombreModulo]Controller>([NombreModulo]Controller);
+  });
+
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+});
+EOF
 ```
 
 ---
 
 ## 📝 Ejemplos Prácticos
 
-### Ejemplo 1: Test de Servicio (AuthService)
+### Ejemplo: Test de Servicio Completo
 ```typescript
-// src/auth/auth.service.spec.ts
-describe('AuthService', () => {
-  let service: AuthService;
+// cases.service.spec.ts
+import { Test, TestingModule } from '@nestjs/testing';
+import { PrismaService } from '../prisma/prisma.service';
+import { CasesService } from './cases.service';
+import { CreateCaseDto } from './dto/create-case.dto';
+import { UpdateCaseDto } from './dto/update-case.dto';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
+
+describe('CasesService', () => {
+  let service: CasesService;
   let mockPrismaService: Partial<PrismaService>;
-  let mockJwtService: Partial<JwtService>;
+
+  const mockUser = {
+    id: 1,
+    email: 'test@example.com',
+    role: 'ADMIN',
+  };
+
+  const mockCase = {
+    id: 1,
+    title: 'Test Case',
+    description: 'Test Description',
+    status: 'PENDING',
+    userId: 1,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
 
   beforeEach(async () => {
     mockPrismaService = {
-      user: {
+      case: {
+        create: jest.fn(),
+        findMany: jest.fn(),
         findUnique: jest.fn(),
         update: jest.fn(),
-      } as any,
-    };
-
-    mockJwtService = {
-      sign: jest.fn().mockReturnValue('fake-jwt-token'),
-    };
+        delete: jest.fn(),
+        count: jest.fn(),
+      },
+      $transaction: jest.fn(),
+    } as any;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        AuthService,
-        { provide: PrismaService, useValue: mockPrismaService },
-        { provide: JwtService, useValue: mockJwtService },
+        CasesService,
+        { provide: PrismaService, useValue: mockPrismaService }
       ],
     }).compile();
 
-    service = module.get<AuthService>(AuthService);
+    service = module.get<CasesService>(CasesService);
   });
 
-  it('should validate user with correct credentials', async () => {
-    const mockUser = {
-      id: 1,
-      email: 'test@example.com',
-      password: await bcrypt.hash('password', 10),
-      role: 'ADMIN',
-    };
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
 
-    mockPrismaService.user.findUnique.mockResolvedValue(mockUser);
+  describe('create', () => {
+    it('should create a new case', async () => {
+      const createCaseDto: CreateCaseDto = {
+        title: 'Test Case',
+        description: 'Test Description',
+        status: 'PENDING',
+      };
 
-    const result = await service.validateUser('test@example.com', 'password');
-    
-    expect(result).toBeDefined();
-    expect(result.email).toBe('test@example.com');
+      mockPrismaService.case.create.mockResolvedValue(mockCase);
+
+      const result = await service.create(createCaseDto, mockUser);
+
+      expect(result).toEqual(mockCase);
+      expect(mockPrismaService.case.create).toHaveBeenCalledWith({
+        data: {
+          ...createCaseDto,
+          userId: mockUser.id,
+        },
+      });
+    });
+  });
+
+  describe('findAll', () => {
+    it('should return all cases for admin user', async () => {
+      const mockCases = [mockCase];
+      mockPrismaService.case.findMany.mockResolvedValue(mockCases);
+      mockPrismaService.case.count.mockResolvedValue(1);
+
+      const result = await service.findAll({ page: 1, limit: 10 }, mockUser);
+
+      expect(result).toEqual({
+        data: mockCases,
+        total: 1,
+        page: 1,
+        limit: 10,
+        totalPages: 1,
+      });
+    });
+
+    it('should return only user cases for non-admin user', async () => {
+      const nonAdminUser = { ...mockUser, role: 'USER' };
+      const mockCases = [mockCase];
+      mockPrismaService.case.findMany.mockResolvedValue(mockCases);
+      mockPrismaService.case.count.mockResolvedValue(1);
+
+      const result = await service.findAll({ page: 1, limit: 10 }, nonAdminUser);
+
+      expect(result).toEqual({
+        data: mockCases,
+        total: 1,
+        page: 1,
+        limit: 10,
+        totalPages: 1,
+      });
+      expect(mockPrismaService.case.findMany).toHaveBeenCalledWith({
+        where: { userId: nonAdminUser.id },
+        skip: 0,
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+      });
+    });
+  });
+
+  describe('findOne', () => {
+    it('should return a case by id', async () => {
+      mockPrismaService.case.findUnique.mockResolvedValue(mockCase);
+
+      const result = await service.findOne(1, mockUser);
+
+      expect(result).toEqual(mockCase);
+      expect(mockPrismaService.case.findUnique).toHaveBeenCalledWith({
+        where: { id: 1 },
+        include: {
+          user: true,
+          documents: true,
+          tasks: true,
+        },
+      });
+    });
+
+    it('should throw NotFoundException if case not found', async () => {
+      mockPrismaService.case.findUnique.mockResolvedValue(null);
+
+      await expect(service.findOne(999, mockUser)).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw ForbiddenException if user is not admin and case does not belong to user', async () => {
+      const nonAdminUser = { ...mockUser, role: 'USER' };
+      const otherUserCase = { ...mockCase, userId: 999 };
+      mockPrismaService.case.findUnique.mockResolvedValue(otherUserCase);
+
+      await expect(service.findOne(1, nonAdminUser)).rejects.toThrow(ForbiddenException);
+    });
+  });
+
+  describe('update', () => {
+    it('should update a case', async () => {
+      const updateCaseDto: UpdateCaseDto = {
+        title: 'Updated Case',
+      };
+      const updatedCase = { ...mockCase, ...updateCaseDto };
+      mockPrismaService.case.findUnique.mockResolvedValue(mockCase);
+      mockPrismaService.case.update.mockResolvedValue(updatedCase);
+
+      const result = await service.update(1, updateCaseDto, mockUser);
+
+      expect(result).toEqual(updatedCase);
+      expect(mockPrismaService.case.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: updateCaseDto,
+      });
+    });
+
+    it('should throw NotFoundException if case not found', async () => {
+      mockPrismaService.case.findUnique.mockResolvedValue(null);
+
+      await expect(service.update(999, {}, mockUser)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('remove', () => {
+    it('should remove a case', async () => {
+      mockPrismaService.case.findUnique.mockResolvedValue(mockCase);
+      mockPrismaService.case.delete.mockResolvedValue(mockCase);
+
+      const result = await service.remove(1, mockUser);
+
+      expect(result).toEqual(mockCase);
+      expect(mockPrismaService.case.delete).toHaveBeenCalledWith({
+        where: { id: 1 },
+      });
+    });
+
+    it('should throw NotFoundException if case not found', async () => {
+      mockPrismaService.case.findUnique.mockResolvedValue(null);
+
+      await expect(service.remove(999, mockUser)).rejects.toThrow(NotFoundException);
+    });
   });
 });
 ```
 
-### Ejemplo 2: Test de Controlador (CasesController)
+### Ejemplo: Test de Controlador Completo
 ```typescript
-// src/cases/cases.controller.spec.ts
+// cases.controller.spec.ts
+import { Test, TestingModule } from '@nestjs/testing';
+import { CasesController } from './cases.controller';
+import { CasesService } from './cases.service';
+import { CreateCaseDto } from './dto/create-case.dto';
+import { UpdateCaseDto } from './dto/update-case.dto';
+
 describe('CasesController', () => {
   let controller: CasesController;
-  let service: Partial<CasesService>;
+  let mockCasesService: Partial<CasesService>;
+
+  const mockUser = {
+    id: 1,
+    email: 'test@example.com',
+    role: 'ADMIN',
+  };
+
+  const mockCase = {
+    id: 1,
+    title: 'Test Case',
+    description: 'Test Description',
+    status: 'PENDING',
+    userId: 1,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
 
   beforeEach(async () => {
-    service = {
-      findAll: jest.fn().mockResolvedValue([{ id: '1', title: 'Test Case' }]),
+    mockCasesService = {
       create: jest.fn(),
+      findAll: jest.fn(),
       findOne: jest.fn(),
+      update: jest.fn(),
+      remove: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [CasesController],
-      providers: [{ provide: CasesService, useValue: service }],
+      providers: [
+        { provide: CasesService, useValue: mockCasesService }
+      ],
     }).compile();
 
     controller = module.get<CasesController>(CasesController);
   });
 
-  it('should return an array of cases', async () => {
-    const mockRequest = {
-      user: { id: '1', role: 'ADMIN' }
-    };
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
 
-    const result = await controller.findAll(mockRequest);
-    
-    expect(result).toEqual([{ id: '1', title: 'Test Case' }]);
-    expect(service.findAll).toHaveBeenCalledWith('1', 'ADMIN');
+  describe('POST /cases', () => {
+    it('should create a new case', async () => {
+      const createCaseDto: CreateCaseDto = {
+        title: 'Test Case',
+        description: 'Test Description',
+        status: 'PENDING',
+      };
+      const req = { user: mockUser } as any;
+
+      mockCasesService.create.mockResolvedValue(mockCase);
+
+      const result = await controller.create(createCaseDto, req);
+
+      expect(result).toEqual(mockCase);
+      expect(mockCasesService.create).toHaveBeenCalledWith(createCaseDto, mockUser);
+    });
+  });
+
+  describe('GET /cases', () => {
+    it('should return all cases', async () => {
+      const query = { page: 1, limit: 10 };
+      const req = { user: mockUser } as any;
+      const expectedResult = {
+        data: [mockCase],
+        total: 1,
+        page: 1,
+        limit: 10,
+        totalPages: 1,
+      };
+
+      mockCasesService.findAll.mockResolvedValue(expectedResult);
+
+      const result = await controller.findAll(query, req);
+
+      expect(result).toEqual(expectedResult);
+      expect(mockCasesService.findAll).toHaveBeenCalledWith(query, mockUser);
+    });
+  });
+
+  describe('GET /cases/:id', () => {
+    it('should return a case by id', async () => {
+      const req = { user: mockUser } as any;
+
+      mockCasesService.findOne.mockResolvedValue(mockCase);
+
+      const result = await controller.findOne('1', req);
+
+      expect(result).toEqual(mockCase);
+      expect(mockCasesService.findOne).toHaveBeenCalledWith(1, mockUser);
+    });
+  });
+
+  describe('PATCH /cases/:id', () => {
+    it('should update a case', async () => {
+      const updateCaseDto: UpdateCaseDto = {
+        title: 'Updated Case',
+      };
+      const req = { user: mockUser } as any;
+      const updatedCase = { ...mockCase, ...updateCaseDto };
+
+      mockCasesService.update.mockResolvedValue(updatedCase);
+
+      const result = await controller.update('1', updateCaseDto, req);
+
+      expect(result).toEqual(updatedCase);
+      expect(mockCasesService.update).toHaveBeenCalledWith(1, updateCaseDto, mockUser);
+    });
+  });
+
+  describe('DELETE /cases/:id', () => {
+    it('should remove a case', async () => {
+      const req = { user: mockUser } as any;
+
+      mockCasesService.remove.mockResolvedValue(mockCase);
+
+      const result = await controller.remove('1', req);
+
+      expect(result).toEqual(mockCase);
+      expect(mockCasesService.remove).toHaveBeenCalledWith(1, mockUser);
+    });
   });
 });
-```
-
-### Ejemplo 3: Test de Casos de Error
-```typescript
-it('should throw UnauthorizedException for invalid credentials', async () => {
-  // Arrange
-  const invalidLoginDto = { email: 'test@example.com', password: 'wrongpass' };
-  mockPrismaService.user.findUnique.mockResolvedValue(null);
-
-  // Act & Assert
-  await expect(service.login(invalidLoginDto))
-    .rejects.toThrow('Credenciales inválidas');
-});
-
-it('should handle database errors gracefully', async () => {
-  // Arrange
-  mockPrismaService.user.findUnique.mockRejectedValue(new Error('DB Error'));
-
-  // Act & Assert
-  await expect(service.validateUser('test@example.com', 'password'))
-    .rejects.toThrow('DB Error');
-});
-```
-
----
-
-## 🎮 Comandos de Testing
-
-### Comandos Básicos
-```bash
-# Ejecutar todos los tests
-npm test
-
-# Ejecutar tests en modo watch (desarrollo)
-npm run test:watch
-
-# Ejecutar tests con cobertura
-npm run test:cov
-
-# Ejecutar tests específicos
-npm test -- --testNamePattern="AuthService"
-
-# Ejecutar tests de un archivo específico
-npm test -- auth.service.spec.ts
-
-# Ejecutar tests con verbose output
-npm test -- --verbose
-```
-
-### Comandos Avanzados
-```bash
-# Ejecutar tests con detección de memory leaks
-npm test -- --detectOpenHandles
-
-# Ejecutar tests con timeout personalizado
-npm test -- --testTimeout=10000
-
-# Ejecutar tests con coverage específico
-npm test -- --coverage --collectCoverageFrom="src/auth/**/*.ts"
-
-# Ejecutar tests en paralelo
-npm test -- --maxWorkers=4
 ```
 
 ---
 
 ## 📊 Cobertura de Tests
 
-### Configuración de Cobertura
-```json
-{
-  "jest": {
-    "collectCoverageFrom": [
-      "**/*.(t|j)s",
-      "!**/*.spec.ts",
-      "!**/node_modules/**"
-    ],
-    "coverageDirectory": "../coverage",
-    "coverageReporters": ["text", "lcov", "html"]
-  }
-}
+### Comandos para Ver Cobertura
+```bash
+# Generar reporte de cobertura
+npm run test:cov
+
+# Ver reporte en navegador
+open coverage/lcov-report/index.html
+
+# Ver cobertura en terminal
+npm test -- --coverage --verbose
 ```
 
-### Interpretación de Cobertura
+### Métricas de Cobertura
 - **Statements**: Porcentaje de líneas de código ejecutadas
-- **Branches**: Porcentaje de ramas condicionales ejecutadas
-- **Functions**: Porcentaje de funciones llamadas
+- **Branches**: Porcentaje de ramas de código ejecutadas
+- **Functions**: Porcentaje de funciones ejecutadas
 - **Lines**: Porcentaje de líneas ejecutadas
 
-### Metas de Cobertura Recomendadas
-- **Mínimo**: 70% de statements
-- **Objetivo**: 80% de statements
-- **Excelente**: 90%+ de statements
+### Objetivo de Cobertura
+- **Mínimo recomendado**: 80%
+- **Objetivo ideal**: 90%+
+- **Cobertura crítica**: 95%+ para servicios de negocio
 
 ---
 
-## ✅ Mejores Prácticas
+## 🎯 Mejores Prácticas
 
-### 1. Nomenclatura Clara
+### 1. Nomenclatura de Tests
 ```typescript
 // ✅ Bueno
-it('should return user when email exists', async () => {});
-it('should throw error when user not found', async () => {});
+describe('UserService', () => {
+  describe('create', () => {
+    it('should create a new user with valid data', () => {});
+    it('should throw error when email already exists', () => {});
+  });
+});
 
 // ❌ Malo
-it('should work', async () => {});
-it('test 1', async () => {});
-```
-
-### 2. Tests Aislados
-```typescript
-// ✅ Cada test es independiente
-beforeEach(async () => {
-  // Reset mocks antes de cada test
-  jest.clearAllMocks();
-});
-
-// ❌ Tests que dependen de otros
-it('should create user', async () => {
-  // Test que crea usuario
-});
-
-it('should update user', async () => {
-  // Test que depende del usuario creado en el test anterior
+describe('UserService', () => {
+  it('test1', () => {});
+  it('test2', () => {});
 });
 ```
 
-### 3. Mocks Específicos
+### 2. Organización de Tests
 ```typescript
-// ✅ Mock específico para el test
-it('should handle user not found', async () => {
-  mockPrismaService.user.findUnique.mockResolvedValue(null);
-  // Test específico
-});
+describe('UserService', () => {
+  // Tests de creación
+  describe('create', () => {
+    it('should create user successfully', () => {});
+    it('should validate required fields', () => {});
+    it('should handle duplicate email', () => {});
+  });
 
-// ❌ Mock genérico que puede cambiar
-beforeEach(async () => {
-  mockPrismaService.user.findUnique.mockResolvedValue(anyUser);
+  // Tests de búsqueda
+  describe('findAll', () => {
+    it('should return all users for admin', () => {});
+    it('should filter by role', () => {});
+    it('should handle pagination', () => {});
+  });
+
+  // Tests de actualización
+  describe('update', () => {
+    it('should update user successfully', () => {});
+    it('should validate permissions', () => {});
+  });
 });
+```
+
+### 3. Mocking Efectivo
+```typescript
+// ✅ Mock específico
+const mockPrismaService = {
+  user: {
+    findUnique: jest.fn().mockResolvedValue(mockUser),
+    create: jest.fn().mockResolvedValue(newUser),
+  },
+} as any;
+
+// ❌ Mock genérico
+const mockPrismaService = jest.fn() as any;
 ```
 
 ### 4. Assertions Claras
 ```typescript
 // ✅ Assertions específicos
 expect(result).toEqual(expectedUser);
-expect(mockService.method).toHaveBeenCalledWith(expectedArgs);
-expect(mockService.method).toHaveBeenCalledTimes(1);
+expect(mockService.create).toHaveBeenCalledWith(createDto);
+expect(mockService.create).toHaveBeenCalledTimes(1);
 
 // ❌ Assertions vagos
-expect(result).toBeTruthy();
-expect(mockService.method).toHaveBeenCalled();
+expect(result).toBeDefined();
+expect(mockService.create).toHaveBeenCalled();
 ```
 
 ### 5. Manejo de Errores
 ```typescript
 // ✅ Test de errores específicos
-it('should throw UnauthorizedException for invalid credentials', async () => {
-  await expect(service.login(invalidDto))
-    .rejects.toThrow('Credenciales inválidas');
+it('should throw NotFoundException when user not found', async () => {
+  mockService.findById.mockResolvedValue(null);
+  
+  await expect(service.update(1, updateDto)).rejects.toThrow(NotFoundException);
 });
 
 // ❌ Test de errores genéricos
 it('should handle errors', async () => {
-  await expect(service.login(invalidDto)).rejects.toThrow();
-});
-```
-
-### 6. Organización de Tests
-```typescript
-describe('AuthService', () => {
-  describe('validateUser', () => {
-    it('should return user for valid credentials', async () => {});
-    it('should return null for invalid credentials', async () => {});
-  });
-
-  describe('login', () => {
-    it('should return user and token', async () => {});
-    it('should throw for invalid credentials', async () => {});
-  });
+  mockService.findById.mockRejectedValue(new Error());
+  
+  await expect(service.update(1, updateDto)).rejects.toThrow();
 });
 ```
 
 ---
 
-## 🔧 Troubleshooting
+## 🔧 Solución de Problemas
 
-### Problemas Comunes
+### Problemas Comunes y Soluciones
 
-#### 1. Error: "Expected 1 arguments, but got 0"
-```typescript
-// ❌ Problema
-const result = await controller.findAll();
+#### 1. Error: "Cannot find module"
+```bash
+# Solución: Verificar que el archivo existe
+ls src/[modulo]/[modulo].service.ts
 
-// ✅ Solución
-const mockRequest = { user: { id: '1', role: 'ADMIN' } };
-const result = await controller.findAll(mockRequest);
+# Si no existe, crear el archivo
+touch src/[modulo]/[modulo].service.ts
 ```
 
-#### 2. Error: "Type is missing properties"
+#### 2. Error: "Mock function not found"
 ```typescript
-// ❌ Problema
-const mockUser = { id: 1, email: 'test@example.com' };
+// Problema: Mock no definido
+mockPrismaService.user.findUnique.mockResolvedValue(user);
 
-// ✅ Solución
-const mockUser = { 
-  id: 1, 
-  email: 'test@example.com', 
-  name: 'Test User',
-  role: 'ADMIN',
-  password: 'hashedPassword'
-};
+// Solución: Definir el mock completo
+const mockPrismaService = {
+  user: {
+    findUnique: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  },
+} as any;
 ```
 
-#### 3. Error: "Cannot read property of undefined"
+#### 3. Error: "Type 'undefined' is not assignable"
 ```typescript
-// ❌ Problema
+// Problema: Tipo incorrecto en mock
+let mockService: any;
+
+// Solución: Usar Partial<T>
+let mockService: Partial<MyService>;
+```
+
+#### 4. Error: "Cannot read property 'mockResolvedValue'"
+```typescript
+// Problema: Mock no inicializado
 mockService.method.mockResolvedValue(result);
 
-// ✅ Solución
-(mockService.method as jest.Mock).mockResolvedValue(result);
+// Solución: Inicializar en beforeEach
+beforeEach(() => {
+  mockService = {
+    method: jest.fn(),
+  };
+});
 ```
 
-#### 4. Error: "Timeout of 5000ms exceeded"
+#### 5. Error: "Test timeout"
 ```typescript
-// ✅ Solución: Aumentar timeout
-it('should handle slow operation', async () => {
-  // Test con operación lenta
-}, 10000); // 10 segundos
+// Problema: Test asíncrono sin await
+it('should do something', () => {
+  service.method(); // Sin await
+});
+
+// Solución: Usar async/await
+it('should do something', async () => {
+  await service.method();
+});
+```
+
+### Debugging de Tests
+```bash
+# Ejecutar test específico con debug
+npm test -- --verbose --testNamePattern="should create user"
+
+# Ejecutar con console.log
+npm test -- --verbose --testNamePattern="should create user" --silent=false
+
+# Ejecutar un solo archivo
+npm test -- cases.service.spec.ts
+```
+
+### Limpieza de Tests
+```bash
+# Limpiar cache de Jest
+npm test -- --clearCache
+
+# Limpiar coverage
+rm -rf coverage/
+
+# Reinstalar dependencias si es necesario
+rm -rf node_modules/
+npm install
 ```
 
 ---
@@ -613,29 +1113,35 @@ it('should handle slow operation', async () => {
 ## 📚 Recursos Adicionales
 
 ### Documentación Oficial
-- [NestJS Testing](https://docs.nestjs.com/fundamentals/testing)
 - [Jest Documentation](https://jestjs.io/docs/getting-started)
+- [NestJS Testing](https://docs.nestjs.com/fundamentals/testing)
 - [TypeScript Testing](https://www.typescriptlang.org/docs/handbook/testing.html)
 
 ### Herramientas Útiles
-- **Jest CLI**: Comandos avanzados de testing
-- **Coverage Reports**: Análisis de cobertura
-- **Test Watchers**: Desarrollo con tests en tiempo real
+- **Jest**: Framework de testing
+- **@nestjs/testing**: Utilidades de testing para NestJS
+- **ts-jest**: Transformador de TypeScript para Jest
+- **supertest**: Testing de APIs HTTP
 
-### Extensiones de VS Code
-- **Jest**: Integración con Jest
-- **Jest Runner**: Ejecutar tests individuales
-- **Coverage Gutters**: Ver cobertura en el editor
+### Comandos Útiles
+```bash
+# Ver versión de Jest
+npx jest --version
+
+# Ver configuración de Jest
+npx jest --showConfig
+
+# Ejecutar tests con watch mode
+npm run test:watch
+
+# Ejecutar tests con coverage
+npm run test:cov
+```
 
 ---
 
-## 🎯 Conclusión
+## 🎉 Conclusión
 
-Los tests son fundamentales para mantener la calidad del código y asegurar que las funcionalidades trabajen correctamente. Esta documentación proporciona una guía completa para:
+Esta documentación proporciona una guía completa para trabajar con los tests del sistema de gestión legal. Los tests existentes cubren los módulos principales (cases, documents, invoices, tasks) y proporcionan una base sólida para el desarrollo continuo.
 
-1. **Entender** cómo funcionan los tests en el proyecto
-2. **Crear** nuevos tests siguiendo las mejores prácticas
-3. **Mantener** tests existentes de manera eficiente
-4. **Debuggear** problemas comunes en testing
-
-Recuerda: **"Los tests son documentación ejecutable"** - escribirlos bien hace que el código sea más mantenible y confiable. 
+Para crear nuevos tests, sigue los patrones establecidos y utiliza las plantillas proporcionadas. Recuerda mantener una alta cobertura de código y seguir las mejores prácticas de testing para asegurar la calidad del software. 

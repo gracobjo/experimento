@@ -51,4 +51,7 @@ lerna-debug.log*
 echo "tokenExperimento.txt" >> .gitignore
 echo "*.txt" >> .gitignore
 echo "tokens/" >> .gitignore
-echo "secrets/" >> .gitignore 
+echo "secrets/" >> .gitignore
+
+# Fuentes directory (facturación electrónica source code)
+/Fuentes 

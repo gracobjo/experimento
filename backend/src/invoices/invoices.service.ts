@@ -1,14 +1,21 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
-import { generateFacturaeXML } from './facturae-xml.util';
-import { signFacturaeXML } from './xades-sign.util';
+import { generateFacturaeXML, generateFacturaeXMLFromInvoice, FacturaeDocument } from './facturae-xml.util';
+import { signFacturaeXML, XAdESLevel, SigningOptions } from './xades-sign.util';
+import { FacturaeService, FacturaeGenerationResult } from './facturae.service';
+import { FacturaeValidator, ValidationResult } from './facturae-validator.util';
 import * as fs from 'fs';
 
 @Injectable()
 export class InvoicesService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(InvoicesService.name);
+  private facturaeService: FacturaeService;
+
+  constructor(private prisma: PrismaService) {
+    this.facturaeService = new FacturaeService();
+  }
 
   async create(data: CreateInvoiceDto) {
     try {
@@ -154,7 +161,7 @@ export class InvoicesService {
 
       // Generar el XML Facturae
       console.log('Generando XML...');
-      const xml = generateFacturaeXML(invoice);
+      const xml = generateFacturaeXMLFromInvoice(invoice);
       console.log('XML generado exitosamente');
       
       // Guardar el XML en la base de datos
@@ -164,9 +171,34 @@ export class InvoicesService {
         data: { xml },
       });
       console.log('XML guardado exitosamente');
+
+      // Firma automática si está habilitada
+      let signedXml = null;
+      if (process.env.FACTURAE_AUTO_SIGN === 'true') {
+        try {
+          console.log('Iniciando firma automática...');
+          const signingResult = await this.generateAndSignInvoiceAdvanced(invoice.id, {
+            level: (process.env.FACTURAE_XADES_LEVEL as any) || 'BES'
+          });
+          
+          if (signingResult.success && signingResult.signedXmlContent) {
+            signedXml = signingResult.signedXmlContent;
+            console.log('Firma automática completada exitosamente');
+          } else {
+            console.warn('Firma automática falló:', signingResult.errors);
+          }
+        } catch (signError) {
+          console.error('Error en firma automática:', signError);
+          // No fallar la creación de la factura por error de firma
+        }
+      }
       
-      // Devolver la factura con el XML
-      return { ...invoice, xml };
+      // Devolver la factura con el XML (y XML firmado si está disponible)
+      return { 
+        ...invoice, 
+        xml,
+        xmlFirmado: signedXml
+      };
     } catch (error: any) {
       console.error('Error completo en create:', error);
       if (error && typeof error === 'object' && 'stack' in error) {
@@ -357,7 +389,7 @@ export class InvoicesService {
       // Generar XML si no existe
       let xml = invoice.xml;
       if (!xml) {
-        xml = generateFacturaeXML(invoice);
+        xml = generateFacturaeXMLFromInvoice(invoice);
         await this.prisma.invoice.update({ where: { id }, data: { xml } });
       }
       result.push({ id, xml });
@@ -470,5 +502,221 @@ export class InvoicesService {
     if (!invoice) throw new Error('Factura no encontrada para este cliente');
     await this.prisma.invoice.delete({ where: { id: invoiceId } });
     return { message: 'Factura eliminada exitosamente' };
+  }
+
+  // ===== NUEVOS MÉTODOS PARA FACTURACIÓN ELECTRÓNICA AVANZADA =====
+
+  /**
+   * Genera y firma una factura electrónica con XAdES avanzado
+   */
+  async generateAndSignInvoiceAdvanced(
+    id: string, 
+    options: Partial<SigningOptions> = {}
+  ): Promise<FacturaeGenerationResult> {
+    try {
+      const invoice = await this.prisma.invoice.findUnique({
+        where: { id },
+        include: { 
+          items: true, 
+          emisor: true, 
+          receptor: true, 
+          expediente: true 
+        }
+      });
+
+      if (!invoice) {
+        throw new Error('Factura no encontrada');
+      }
+
+      // Convertir a formato FacturaeDocument
+      const facturaeData = this.convertToFacturaeDocument(invoice);
+      
+      // Generar y firmar usando el servicio avanzado
+      const result = await this.facturaeService.generateAndSignInvoice(facturaeData, options);
+      
+      if (result.success && result.signedXmlContent) {
+        // Guardar XML firmado en la base de datos
+        await this.prisma.invoice.update({
+          where: { id },
+          data: { 
+            xmlFirmado: result.signedXmlContent,
+            xml: result.xmlContent 
+          }
+        });
+      }
+
+      return result;
+    } catch (error) {
+      this.logger.error('Error en generateAndSignInvoiceAdvanced', error);
+      return {
+        success: false,
+        errors: [error instanceof Error ? error.message : String(error)]
+      };
+    }
+  }
+
+  /**
+   * Valida una factura electrónica
+   */
+  async validateInvoice(id: string, checkSignature: boolean = true): Promise<ValidationResult> {
+    try {
+      const invoice = await this.prisma.invoice.findUnique({ where: { id } });
+      if (!invoice || !invoice.xml) {
+        throw new Error('Factura o XML no encontrado');
+      }
+
+      const xmlToValidate = checkSignature && invoice.xmlFirmado ? invoice.xmlFirmado : invoice.xml;
+      return await this.facturaeService.validateInvoice(xmlToValidate, checkSignature);
+    } catch (error) {
+      this.logger.error('Error al validar factura', error);
+      return {
+        isValid: false,
+        errors: [error instanceof Error ? error.message : String(error)],
+        warnings: []
+      };
+    }
+  }
+
+  /**
+   * Obtiene información del certificado
+   */
+  async getCertificateInfo() {
+    return await this.facturaeService.getCertificateInfo();
+  }
+
+  /**
+   * Verifica el estado del certificado
+   */
+  async checkCertificateStatus() {
+    return await this.facturaeService.checkCertificateStatus();
+  }
+
+  /**
+   * Genera un reporte de validación
+   */
+  async generateValidationReport(id: string): Promise<string> {
+    try {
+      const invoice = await this.prisma.invoice.findUnique({ where: { id } });
+      if (!invoice || !invoice.xml) {
+        throw new Error('Factura o XML no encontrado');
+      }
+
+      const xmlToValidate = invoice.xmlFirmado || invoice.xml;
+      return await this.facturaeService.generateValidationReport(xmlToValidate);
+    } catch (error) {
+      this.logger.error('Error al generar reporte', error);
+      return `Error al generar reporte: ${error instanceof Error ? error.message : String(error)}`;
+    }
+  }
+
+  /**
+   * Convierte una factura de la base de datos al formato FacturaeDocument
+   */
+  private convertToFacturaeDocument(invoice: any): FacturaeDocument {
+    return {
+      fileHeader: {
+        schemaVersion: '3.2.2',
+        modality: 'I',
+        issuerParty: {
+          taxIdentification: {
+            personTypeCode: 'J',
+            residenceTypeCode: 'R',
+            taxIdentificationNumber: invoice.emisor?.dni || 'B00000000'
+          },
+          legalEntity: {
+            corporateName: invoice.emisor?.name || 'Empresa Emisora'
+          },
+          address: {
+            address: 'Dirección del Emisor',
+            postCode: '28001',
+            town: 'Madrid',
+            province: 'Madrid',
+            countryCode: 'ESP'
+          }
+        },
+        receiverParty: {
+          taxIdentification: {
+            personTypeCode: 'J',
+            residenceTypeCode: 'R',
+            taxIdentificationNumber: invoice.receptor?.dni || 'B00000000'
+          },
+          legalEntity: {
+            corporateName: invoice.receptor?.name || 'Empresa Receptora'
+          },
+          address: {
+            address: 'Dirección del Receptor',
+            postCode: '28001',
+            town: 'Madrid',
+            province: 'Madrid',
+            countryCode: 'ESP'
+          }
+        },
+        documentType: 'FC'
+      },
+      part: {
+        sellerParty: {
+          taxIdentification: {
+            personTypeCode: 'J',
+            residenceTypeCode: 'R',
+            taxIdentificationNumber: invoice.emisor?.dni || 'B00000000'
+          },
+          legalEntity: {
+            corporateName: invoice.emisor?.name || 'Empresa Emisora'
+          },
+          address: {
+            address: 'Dirección del Emisor',
+            postCode: '28001',
+            town: 'Madrid',
+            province: 'Madrid',
+            countryCode: 'ESP'
+          }
+        },
+        buyerParty: {
+          taxIdentification: {
+            personTypeCode: 'J',
+            residenceTypeCode: 'R',
+            taxIdentificationNumber: invoice.receptor?.dni || 'B00000000'
+          },
+          legalEntity: {
+            corporateName: invoice.receptor?.name || 'Empresa Receptora'
+          },
+          address: {
+            address: 'Dirección del Receptor',
+            postCode: '28001',
+            town: 'Madrid',
+            province: 'Madrid',
+            countryCode: 'ESP'
+          }
+        },
+        invoices: [{
+          invoiceHeader: {
+            invoiceNumber: invoice.numeroFactura || 'FAC-001',
+            invoiceDocumentType: 'FC',
+            invoiceClass: 'OO'
+          },
+          invoiceIssueData: {
+            issueDate: invoice.fechaFactura || new Date(),
+            languageCode: 'es',
+            currencyCode: 'EUR'
+          },
+          invoiceTotals: {
+            totalGrossAmount: invoice.importeTotal || 0,
+            totalGrossAmountBeforeTaxes: invoice.baseImponible || 0,
+            totalTaxOutputs: invoice.cuotaIVA || 0,
+            totalTaxesWithheld: 0,
+            invoiceTotal: invoice.importeTotal || 0,
+            totalOutstandingAmount: invoice.importeTotal || 0,
+            totalExecutableAmount: invoice.importeTotal || 0
+          },
+          items: (invoice.items || []).map((item: any) => ({
+            itemDescription: item.description || '',
+            quantity: item.quantity || 0,
+            unitPriceWithoutTax: item.unitPrice || 0,
+            totalCost: (item.quantity || 0) * (item.unitPrice || 0),
+            grossAmount: item.total || 0
+          }))
+        }]
+      }
+    };
   }
 } 

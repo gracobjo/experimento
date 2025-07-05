@@ -193,6 +193,9 @@ model Invoice {
   estado            String        // borrador, emitida, enviada, aceptada, rechazada, anulada
   motivoAnulacion    String?       // Motivo de anulación (nullable)
   selloTiempo       DateTime?     // Sello de tiempo TSA
+  externalId        String?       // ID en sistema externo (AEAT, FACE, etc.)
+  sistemaEnvio      String?       // Sistema al que se envió (AEAT, FACE, etc.)
+  fechaEnvio        DateTime?     // Fecha de envío a sistema externo
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
   emisor            User          @relation("EmisorFacturas", fields: [emisorId], references: [id])

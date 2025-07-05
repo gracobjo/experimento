@@ -1,0 +1,3781 @@
+Index: .classpath
+===================================================================
+--- .classpath	(revision 5)
++++ .classpath	(revision 34)
+@@ -1,10 +1,10 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+ <classpath>
+-	<classpathentry kind="src" path="src"/>
+-	<classpathentry kind="src" path="resources"/>
+-	<classpathentry kind="src" path="test"/>
+-	<classpathentry kind="lib" path="lib/commons-logging-1.1.1.jar"/>
+-	<classpathentry kind="lib" path="lib/xalan.jar"/>
+-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+-	<classpathentry kind="output" path="bin"/>
++	<classpathentry kind="src" output="build/release" path="src"/>
++	<classpathentry excluding="**" kind="src" output="build/release" path="resources"/>
++	<classpathentry kind="src" output="build/test" path="test"/>
++	<classpathentry excluding="**" kind="src" output="build/test" path="testres"/>
++	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/J2SE-1.5"/>
++	<classpathentry kind="con" path="org.maven.ide.eclipse.MAVEN2_CLASSPATH_CONTAINER"/>
++	<classpathentry kind="output" path="build/release"/>
+ </classpath>
+
+Property changes on: C:\java\opensource\xmlsec-1.4.2\dist
+___________________________________________________________________
+Added: svn:ignore
+   + debug
+release
+
+
+Index: .project
+===================================================================
+--- .project	(revision 5)
++++ .project	(revision 34)
+@@ -10,8 +10,14 @@
+ 			<arguments>
+ 			</arguments>
+ 		</buildCommand>
++		<buildCommand>
++			<name>org.maven.ide.eclipse.maven2Builder</name>
++			<arguments>
++			</arguments>
++		</buildCommand>
+ 	</buildSpec>
+ 	<natures>
++		<nature>org.maven.ide.eclipse.maven2Nature</nature>
+ 		<nature>org.eclipse.jdt.core.javanature</nature>
+ 	</natures>
+ </projectDescription>
+
+Property changes on: C:\java\opensource\xmlsec-1.4.2\doc
+___________________________________________________________________
+Added: svn:ignore
+   + site
+
+
+Index: src/org/apache/xml/security/utils/Constants.java
+===================================================================
+--- src/org/apache/xml/security/utils/Constants.java	(revision 5)
++++ src/org/apache/xml/security/utils/Constants.java	(revision 34)
+@@ -26,6 +26,10 @@
+  * Signature specification</A>.
+  *
+  * @author $Author: mullan $
++ * 
++ * Changes:
++ *  * Constant to indicate digest algorithm
++ * @author David Santos
+  */
+ public class Constants {
+ 
+@@ -181,6 +185,9 @@
+ 
+    /** Digest - Required SHA1 */
+    public static final String ALGO_ID_DIGEST_SHA1        = SignatureSpecNS + "sha1";
++   
++   /** Property name that Private data ResourceResolverSpi must understand */
++   public static final String PROPERTY_RR_ALG_DIGEST	 = "digest.algorithm";
+ 
+    /**
+     * @see <A HREF="http://www.ietf.org/internet-drafts/draft-blake-wilson-xmldsig-ecdsa-02.txt">
+Index: src/org/apache/xml/security/utils/resolver/ResourceResolverSpi.java
+===================================================================
+--- src/org/apache/xml/security/utils/resolver/ResourceResolverSpi.java	(revision 5)
++++ src/org/apache/xml/security/utils/resolver/ResourceResolverSpi.java	(revision 34)
+@@ -29,6 +29,11 @@
+  * During reference validation, we have to retrieve resources from somewhere.
+  *
+  * @author $Author: raul $
++
++ * Changes:
++ *  * allow to indicate a ResourceResolverSpi that cannot access directly data (only digests). Usefull with private data (XmlSignatureInput
++ *    create by this kind of private ResourceResolver must return digest instead data).
++ * @author David Santos
+  */
+ public abstract class ResourceResolverSpi {
+ 
+@@ -99,7 +104,18 @@
+    public boolean engineIsThreadSafe() {
+ 	   return false;
+    }
++   
+    /**
++    * Tells if this resolver can get the data or only works with digest results.
++    * 
++    * <br/><br/>A ResourceResolverSpi that access to private data must understand <code>digest.algorithm</code> property
++    * 
++    * @return true if this resolver only gets digets results.
++    */
++   public boolean engineIsPrivateData() {
++	   return false;
++   }
++   /**
+     * This method helps the {@link ResourceResolver} to decide whether a
+     * {@link ResourceResolverSpi} is able to perform the requested action.
+     *
+Index: src/org/apache/xml/security/utils/resolver/implementations/ResolverLocalFilesystem.java
+===================================================================
+--- src/org/apache/xml/security/utils/resolver/implementations/ResolverLocalFilesystem.java	(revision 5)
++++ src/org/apache/xml/security/utils/resolver/implementations/ResolverLocalFilesystem.java	(revision 34)
+@@ -28,6 +28,10 @@
+  * A simple ResourceResolver for requests into the local filesystem.
+  *
+  * @author $Author: mullan $
++ * 
++ * Changes:
++ *  * method visibility to allow heritance
++ * @author David Santos
+  */
+ public class ResolverLocalFilesystem extends ResourceResolverSpi {
+ 
+@@ -75,7 +79,7 @@
+     * @param uri
+     * @return the string of the filename
+     */
+-   private static String translateUriToFilename(String uri) {
++   protected static String translateUriToFilename(String uri) {
+ 
+       String subStr = uri.substring(FILE_URI_LENGTH);
+ 
+@@ -142,7 +146,7 @@
+       return false;
+    }
+ 
+-   private static URI getNewURI(String uri, String BaseURI)
++   protected static URI getNewURI(String uri, String BaseURI)
+            throws URI.MalformedURIException {
+ 
+       if ((BaseURI == null) || "".equals(BaseURI)) {
+Index: src/org/apache/xml/security/utils/resolver/implementations/ResolverBigLocalFilesystem.java
+===================================================================
+--- src/org/apache/xml/security/utils/resolver/implementations/ResolverBigLocalFilesystem.java	(revision 0)
++++ src/org/apache/xml/security/utils/resolver/implementations/ResolverBigLocalFilesystem.java	(revision 34)
+@@ -0,0 +1,53 @@
++/**
++ * 
++ */
++package org.apache.xml.security.utils.resolver.implementations;
++
++import org.apache.xml.security.signature.XMLSignatureInput;
++import org.apache.xml.security.utils.resolver.ResourceResolverException;
++import org.apache.xml.utils.URI;
++import org.w3c.dom.Attr;
++
++/**
++ * This ResourceResolver allows to access to filesystem without bytereaded in signature management (improves memory management with some
++ * signatures sign/validation when not accesing such files through XmlSignature structure).
++ * 
++ * @author dsantose
++ */
++public class ResolverBigLocalFilesystem extends ResolverLocalFilesystem {
++
++	/**
++	 * 
++	 */
++	public ResolverBigLocalFilesystem() {
++		super();
++	}
++	
++	public XMLSignatureInput engineResolve(Attr uri, String BaseURI)
++	throws ResourceResolverException {
++
++		try {
++			URI uriNew = getNewURI(uri.getNodeValue(), BaseURI);
++
++			// if the URI contains a fragment, ignore it
++			URI uriNewNoFrag = new URI(uriNew);
++
++			uriNewNoFrag.setFragment(null);
++
++			String fileName =
++				ResolverLocalFilesystem
++				.translateUriToFilename(uriNewNoFrag.toString());
++			ReseteableFileInputStream inputStream = new ReseteableFileInputStream(fileName);
++			XMLSignatureInput result = new XMLSignatureInput(inputStream);
++
++			result.setSourceURI(uriNew.toString());
++
++			return result;
++		} catch (Exception e) {
++			throw new ResourceResolverException("generic.EmptyMessage", e, uri,
++					BaseURI);
++		}
++	}
++
++
++}
+Index: src/org/apache/xml/security/utils/resolver/implementations/ReseteableFileInputStream.java
+===================================================================
+--- src/org/apache/xml/security/utils/resolver/implementations/ReseteableFileInputStream.java	(revision 0)
++++ src/org/apache/xml/security/utils/resolver/implementations/ReseteableFileInputStream.java	(revision 34)
+@@ -0,0 +1,80 @@
++/**
++ * 
++ */
++package org.apache.xml.security.utils.resolver.implementations;
++
++import java.io.FileInputStream;
++import java.io.FileNotFoundException;
++import java.io.IOException;
++import java.io.InputStream;
++
++/**
++ * This InputStream simulates FileInputStream with resetable capability (reset equivalent to new FileInputStream).
++ * 
++ * @author dsantose
++ */
++public class ReseteableFileInputStream extends InputStream {
++	
++	private FileInputStream fis;
++	private String filename;
++
++	/**
++	 * @param buf
++	 */
++	public ReseteableFileInputStream(String filename) throws FileNotFoundException {
++		super();
++		this.filename = filename;
++		fis = new FileInputStream(filename);
++	}
++
++	@Override
++	public int available() throws IOException {
++		return fis.available();
++	}
++
++	@Override
++	public void close() throws IOException {
++		fis.close();
++	}
++
++	@Override
++	public int read() throws IOException {
++		return fis.read();
++	}
++
++	@Override
++	public int read(byte[] b, int off, int len) throws IOException {
++		return fis.read(b, off, len);
++	}
++
++	@Override
++	public int read(byte[] b) throws IOException {
++		return fis.read(b);
++	}
++
++	@Override
++	public long skip(long n) throws IOException {
++		return fis.skip(n);
++	}
++
++	@Override
++	public synchronized void mark(int readlimit) {
++		super.mark(readlimit);
++	}
++
++	@Override
++	public boolean markSupported() {
++		return true;
++	}
++
++	@Override
++	public synchronized void reset() throws IOException {
++		fis.close();
++		fis = new FileInputStream(filename);
++	}
++	
++	
++
++
++
++}
+Index: src/org/apache/xml/security/utils/resolver/ResourceResolver.java
+===================================================================
+--- src/org/apache/xml/security/utils/resolver/ResourceResolver.java	(revision 5)
++++ src/org/apache/xml/security/utils/resolver/ResourceResolver.java	(revision 34)
+@@ -41,9 +41,13 @@
+  * </UL>
+  *
+  * @author $Author: raul $
++ * 
++ * Changes:
++ *  * allow to indicate a ResourceResolver that cannot access directly data (only digests). Usefull with private data.
++ * @author David Santos
+  */
+ public class ResourceResolver {
+-
++	
+    /** {@link org.apache.commons.logging} logging facility */
+     static org.apache.commons.logging.Log log = 
+         org.apache.commons.logging.LogFactory.getLog(ResourceResolver.class.getName());
+@@ -317,4 +321,13 @@
+    private boolean canResolve(Attr uri, String BaseURI) {
+       return this._resolverSpi.engineCanResolve(uri, BaseURI);
+    }
++   
++   /**
++    * Mehotd canAccessData
++    * 
++    * @return
++    */
++   public boolean canAccessData() {
++	   return !this._resolverSpi.engineIsPrivateData();
++   }
+ }
+Index: src/org/apache/xml/security/utils/SignerOutputStream.java
+===================================================================
+--- src/org/apache/xml/security/utils/SignerOutputStream.java	(revision 5)
++++ src/org/apache/xml/security/utils/SignerOutputStream.java	(revision 34)
+@@ -75,6 +75,9 @@
+         try {
+             sa.update(arg0,arg1,arg2);
+         } catch (XMLSignatureException e) {
++        	if (log.isDebugEnabled()) {
++        		log.debug("", e);
++        	}
+             throw new RuntimeException(""+e);
+         }
+     }
+Index: src/org/apache/xml/security/signature/XMLSignatureInput.java
+===================================================================
+--- src/org/apache/xml/security/signature/XMLSignatureInput.java	(revision 5)
++++ src/org/apache/xml/security/signature/XMLSignatureInput.java	(revision 34)
+@@ -47,6 +47,10 @@
+  *
+  * @author Christian Geuer-Pollmann
+  * $todo$ check whether an XMLSignatureInput can be _both_, octet stream _and_ node set?
++ * 
++ * Changes:
++ *  * all resetable inputstream are used like inputstream instead byte readed (better memory management).
++ * @author David Santos
+  */
+ public class XMLSignatureInput implements Cloneable {
+     static org.apache.commons.logging.Log log = 
+@@ -527,8 +531,8 @@
+             }            
+             is.reset();            
+             int num;
+-            byte[] bytesT = new byte[1024];
+-            while ((num=is.read(bytesT))>0) {
++            byte[] bytesT = new byte[4096];
++            while ((num=is.read(bytesT))>= 0) {
+             	diOs.write(bytesT,0,num);
+             }
+         }
+@@ -548,6 +552,10 @@
+             }
+             return _inputOctetStreamProxy;
+         }
++    	// All resetable stream are admitted
++    	if ((_inputOctetStreamProxy != null) && (_inputOctetStreamProxy.markSupported())) {
++            return _inputOctetStreamProxy;
++    	}
+         if (bytes!=null) {
+             _inputOctetStreamProxy=new ByteArrayInputStream(bytes);
+             return _inputOctetStreamProxy;
+Index: src/org/apache/xml/security/signature/Reference.java
+===================================================================
+--- src/org/apache/xml/security/signature/Reference.java	(revision 5)
++++ src/org/apache/xml/security/signature/Reference.java	(revision 34)
+@@ -95,6 +95,11 @@
+  * @author Christian Geuer-Pollmann
+  * @see ObjectContainer
+  * @see Manifest
++ * 
++ * Changes:
++ *   * modified to allow to use ResourceResolver that access to private data. This data cannot be managed by Reference, only its digest.
++ *     XmlSigntaureInput doesn't return data, but digest.
++ * @author David Santos
+  */
+ public class Reference extends SignatureElementProxy {
+ 
+@@ -370,48 +375,102 @@
+            throws XMLSignatureException, ReferenceNotInitializedException {
+       this.setDigestValueElement(this.calculateDigest(false));
+    }
++   
++   /**
++    * 
++    * @return
++    * @throws ReferenceNotInitializedException
++    */
++   protected byte[] getDigestPrivateData() throws ReferenceNotInitializedException {
++	   try {
++		   ResourceResolver resolver = getResourceResolver();
++		   Attr URIAttr = this._constructionElement.getAttributeNodeNS(null,
++				   Constants._ATT_URI);
+ 
++		   // send hash algorithm name to resolver
++		   if (!resolver.understandsProperty(Constants.PROPERTY_RR_ALG_DIGEST))
++			   throw new ReferenceNotInitializedException("empty");
++
++		   if (digestMethodElem == null) {
++			   throw new ReferenceNotInitializedException("empty");
++		   }
++		   String uri = digestMethodElem.getAttributeNS(null,
++				   Constants._ATT_ALGORITHM);
++		   if (uri == null) {
++			   throw new ReferenceNotInitializedException("empty");
++		   }
++		   resolver.setProperty("digest.algorithm", uri);
++
++		   XMLSignatureInput input = resolver.resolve(URIAttr, this._baseURI);
++
++		   return input.getBytes();
++	   } catch (ReferenceNotInitializedException ex) {
++		   throw ex;
++	   } catch (ResourceResolverException ex) {
++		   throw new ReferenceNotInitializedException("empty", ex);
++	   } catch (CanonicalizationException ex) {
++		   throw new ReferenceNotInitializedException("empty", ex);
++	   } catch (IOException ex) {
++		   throw new ReferenceNotInitializedException("empty", ex);
++	   }
++   }
++
++   
+    /**
+-    * Returns the XMLSignatureInput which is created by de-referencing the URI attribute.
+-    * @return the XMLSignatureInput of the source of this reference
++    * Returns the ResourceResolver which is used to de-referencing de URI attribute
++    * @return the ResourceResolver of this reference
+     * @throws ReferenceNotInitializedException If the resolver found any
+     *  problem resolving the reference
+     */
+-   public XMLSignatureInput getContentsBeforeTransformation()
+-           throws ReferenceNotInitializedException {
++   private ResourceResolver getResourceResolver() throws ReferenceNotInitializedException {
++	   try {
++		   Attr URIAttr = this._constructionElement.getAttributeNodeNS(null,
++				   Constants._ATT_URI);
+ 
+-      try {
+-         Attr URIAttr = this._constructionElement.getAttributeNodeNS(null,
+-            Constants._ATT_URI);
+-         String URI;
++		   ResourceResolver resolver = ResourceResolver.getInstance(URIAttr,
++				   this._baseURI, this._manifest._perManifestResolvers);
+ 
+-         if (URIAttr == null) {
+-            URI = null;
+-         } else {
+-            URI = URIAttr.getNodeValue();
+-         }
++		   if (resolver == null) {
++			   String URI;
++			   if (URIAttr == null) {
++				   URI = null;
++			   } else {
++				   URI = URIAttr.getNodeValue();
++			   }
++			   Object exArgs[] = { URI };
+ 
+-         ResourceResolver resolver = ResourceResolver.getInstance(URIAttr,
+-            this._baseURI, this._manifest._perManifestResolvers);
++			   throw new ReferenceNotInitializedException(
++					   "signature.Verification.Reference.NoInput", exArgs);
++		   }
+ 
+-         if (resolver == null) {
+-            Object exArgs[] = { URI };
++		   resolver.addProperties(this._manifest._resolverProperties);
+ 
+-            throw new ReferenceNotInitializedException(
+-               "signature.Verification.Reference.NoInput", exArgs);
+-         }
++		   return resolver;
++	   }  catch (ResourceResolverException ex) {
++		   throw new ReferenceNotInitializedException("empty", ex);
++	   }
++   }
+ 
+-         resolver.addProperties(this._manifest._resolverProperties);
++   /**
++    * Returns the XMLSignatureInput which is created by de-referencing the URI attribute.
++    * @return the XMLSignatureInput of the source of this reference
++    * @throws ReferenceNotInitializedException If the resolver found any
++    *  problem resolving the reference
++    */
++   public XMLSignatureInput getContentsBeforeTransformation() throws ReferenceNotInitializedException {
++	   try {
++		   ResourceResolver resolver = getResourceResolver();
++		   Attr URIAttr = this._constructionElement.getAttributeNodeNS(null,
++				   Constants._ATT_URI);
+ 
+-         XMLSignatureInput input = resolver.resolve(URIAttr, this._baseURI);
+-                  
++		   XMLSignatureInput input = resolver.resolve(URIAttr, this._baseURI);
+ 
+-         return input;
+-      }  catch (ResourceResolverException ex) {
+-         throw new ReferenceNotInitializedException("empty", ex);
+-      } catch (XMLSecurityException ex) {
+-         throw new ReferenceNotInitializedException("empty", ex);
+-      }
++		   return input;
++	   } catch (ReferenceNotInitializedException ex) {
++		   throw ex;
++	   }  catch (ResourceResolverException ex) {
++		   throw new ReferenceNotInitializedException("empty", ex);
++	   }
+    }
+ 
+    /**
+@@ -686,38 +745,42 @@
+    private byte[] calculateDigest(boolean validating)
+            throws ReferenceNotInitializedException, XMLSignatureException {
+ 
+-      try {
+-         
+-         MessageDigestAlgorithm mda = this.getMessageDigestAlgorithm();
+-
+-         mda.reset();
+-         DigesterOutputStream diOs=new DigesterOutputStream(mda);
+-         OutputStream os=new UnsyncBufferedOutputStream(diOs);
+-         XMLSignatureInput output=this.dereferenceURIandPerformTransforms(os);         
+-	 // if signing and c14n11 property == true explicitly add
+-	 // C14N11 transform if needed
+-	 if (this.useC14N11 && !validating &&
+-	     !output.isOutputStreamSet() && !output.isOctetStream()) {
+-	     if (transforms == null) {
+-		 transforms = new Transforms(this._doc);
+-                 this._constructionElement.insertBefore
+-		     (transforms.getElement(), digestMethodElem);
+-	     }
+-	     transforms.addTransform(Transforms.TRANSFORM_C14N11_OMIT_COMMENTS);
+-             output.updateOutputStream(os, true);
+-	 } else {
+-             output.updateOutputStream(os);
+-	 }
+-         os.flush();
+-         //this.getReferencedBytes(diOs);
+-         //mda.update(data);
+-
+-         return diOs.getDigestValue();
+-      } catch (XMLSecurityException ex) {
+-         throw new ReferenceNotInitializedException("empty", ex);
+-      } catch (IOException ex) {
+-      	 throw new ReferenceNotInitializedException("empty", ex);
+-      }
++ 	  ResourceResolver rr = this.getResourceResolver();
++	  if (rr.canAccessData()) {
++	      try {
++	         MessageDigestAlgorithm mda = this.getMessageDigestAlgorithm();
++	
++	         mda.reset();
++	         DigesterOutputStream diOs=new DigesterOutputStream(mda);
++	         OutputStream os=new UnsyncBufferedOutputStream(diOs);
++	         XMLSignatureInput output=this.dereferenceURIandPerformTransforms(os);         
++			 // if signing and c14n11 property == true explicitly add
++			 // C14N11 transform if needed
++			 if (this.useC14N11 && !validating &&
++			     !output.isOutputStreamSet() && !output.isOctetStream()) {
++			     if (transforms == null) {
++			    	 transforms = new Transforms(this._doc);
++		             this._constructionElement.insertBefore(transforms.getElement(), digestMethodElem);
++			     }
++			     transforms.addTransform(Transforms.TRANSFORM_C14N11_OMIT_COMMENTS);
++	             output.updateOutputStream(os, true);
++			 } else {
++	             output.updateOutputStream(os);
++			 }
++	         os.flush();
++	         //this.getReferencedBytes(diOs);
++	         //mda.update(data);
++	
++	         return diOs.getDigestValue();
++	      } catch (XMLSecurityException ex) {
++	         throw new ReferenceNotInitializedException("empty", ex);
++	      } catch (IOException ex) {
++	      	 throw new ReferenceNotInitializedException("empty", ex);
++	      }
++	  }
++	  else {
++		  return this.getDigestPrivateData();
++	  }
+    }
+ 
+    /**
+Index: src/org/apache/xml/security/algorithms/JCEMapper.java
+===================================================================
+--- src/org/apache/xml/security/algorithms/JCEMapper.java	(revision 5)
++++ src/org/apache/xml/security/algorithms/JCEMapper.java	(revision 34)
+@@ -18,6 +18,7 @@
+ 
+ 
+ 
++import java.security.Provider;
+ import java.util.HashMap;
+ import java.util.Map;
+ 
+@@ -32,6 +33,10 @@
+  * This class maps algorithm identifier URIs to JAVA JCE class names.
+  *
+  * @author $Author: raul $
++ * 
++ * Changes:
++ *   * changed to allow to specify a signature provider for thread. Usefull in multi-thread multi-signature provider environment.
++ * @author David Santos
+  */
+ public class JCEMapper {
+ 
+@@ -46,6 +51,14 @@
+    private static Map algorithmsMap;
+ 
+    private static String providerName = null;
++
++   private static ThreadLocal<Provider> providersThread = new ThreadLocal<Provider>() {
++       protected synchronized Provider initialValue() {
++           return null;
++       }
++   };
++ 
++   
+    /**
+     * Method init
+     *
+@@ -145,6 +158,37 @@
+    }
+    
+    /**
++    * <p>Remove the Provider assigned to this Thread.</p>
++    */
++   public static void removeProviderSignatureThread() {
++	   providersThread.remove();
++	   SignatureAlgorithm.clearInstanceForSigning();
++   }
++   
++   /** 
++    * <p>Sets the Provider that will be used in present Thread.</p> 
++    * @param provider Provider to be used in this Thread
++    */
++   public static void setProviderSignatureThread(Provider provider) {
++	   Provider actualProv = providersThread.get();
++	   if (actualProv != null) {
++		   String name = actualProv.getName();
++		   if ((name != null) && (!name.equals(provider.getName()))) {
++			   SignatureAlgorithm.clearInstanceForSigning();
++		   }
++	   }
++	   providersThread.set(provider);
++   }
++   
++   /**
++    * <p>Obtains the Provider assigned to this Thread.</p>
++    * @return Provider assigned to this Thread, <code>null</code> if none is set
++    */
++   public static Provider getProviderSignatureThread() {
++	   return providersThread.get();
++   }
++   
++   /**
+     * Represents the Algorithm xml element
+     */   
+    public static class Algorithm {
+Index: src/org/apache/xml/security/algorithms/SignatureAlgorithm.java
+===================================================================
+--- src/org/apache/xml/security/algorithms/SignatureAlgorithm.java	(revision 5)
++++ src/org/apache/xml/security/algorithms/SignatureAlgorithm.java	(revision 34)
+@@ -110,6 +110,9 @@
+ 	   ((Map)instancesSigning.get()).put(algorithmURI,result);
+ 	   return result;
+    }
++   public static void clearInstanceForSigning() {
++	   ((Map) instancesSigning.get()).clear();
++   }
+    private static SignatureAlgorithmSpi getInstanceForVerify(String algorithmURI) throws XMLSignatureException {
+ 	   SignatureAlgorithmSpi result=(SignatureAlgorithmSpi) ((Map)instancesVerify.get()).get(algorithmURI);
+ 	   if (result!=null) {
+Index: src/org/apache/xml/security/algorithms/implementations/SignatureECDSA.java
+===================================================================
+--- src/org/apache/xml/security/algorithms/implementations/SignatureECDSA.java	(revision 5)
++++ src/org/apache/xml/security/algorithms/implementations/SignatureECDSA.java	(revision 34)
+@@ -24,6 +24,7 @@
+ import java.security.Key;
+ import java.security.NoSuchProviderException;
+ import java.security.PrivateKey;
++import java.security.Provider;
+ import java.security.PublicKey;
+ import java.security.SecureRandom;
+ import java.security.Signature;
+@@ -40,6 +41,9 @@
+ /**
+  *
+  * @author $Author: raul $
++ * Changes:
++ *   * changed to allow to specify a signature provider for thread. Usefull in multi-thread multi-signature provider environment.
++ * @author David Santos
+  */
+ public abstract class SignatureECDSA extends SignatureAlgorithmSpi {
+ 
+@@ -163,13 +167,21 @@
+ 
+       if (log.isDebugEnabled())
+       	log.debug("Created SignatureECDSA using " + algorithmID);
+-      String provider=JCEMapper.getProviderId();
++  	Provider providerThread = JCEMapper.getProviderSignatureThread();
++	String provider = null;
++	if (providerThread == null) {
++		provider=JCEMapper.getProviderId();
++	}
+       try {
+-      	 if (provider==null) {
+-      	 	this._signatureAlgorithm = Signature.getInstance(algorithmID);
+-      	 } else {
+-      	 	this._signatureAlgorithm = Signature.getInstance(algorithmID,provider);
+-      	 }
++  		if (providerThread == null) {
++		    if (provider == null) {
++		    	this._signatureAlgorithm = Signature.getInstance(algorithmID);
++		    } else {
++	      	 	this._signatureAlgorithm = Signature.getInstance(algorithmID, provider);
++		    }
++		} else {
++			this._signatureAlgorithm = Signature.getInstance(algorithmID, providerThread);
++		}
+       } catch (java.security.NoSuchAlgorithmException ex) {
+          Object[] exArgs = { algorithmID,
+                              ex.getLocalizedMessage() };
+Index: src/org/apache/xml/security/algorithms/implementations/SignatureBaseRSA.java
+===================================================================
+--- src/org/apache/xml/security/algorithms/implementations/SignatureBaseRSA.java	(revision 5)
++++ src/org/apache/xml/security/algorithms/implementations/SignatureBaseRSA.java	(revision 34)
+@@ -21,6 +21,7 @@
+ import java.security.Key;
+ import java.security.NoSuchProviderException;
+ import java.security.PrivateKey;
++import java.security.Provider;
+ import java.security.PublicKey;
+ import java.security.SecureRandom;
+ import java.security.Signature;
+@@ -35,6 +36,10 @@
+ /**
+  *
+  * @author $Author: mullan $
++ * 
++ * Changes:
++ *   * changed to allow to specify a signature provider for thread. Usefull in multi-thread multi-signature provider environment.
++ * @author David Santos
+  */
+ public abstract class SignatureBaseRSA extends SignatureAlgorithmSpi {
+ 
+@@ -60,13 +65,21 @@
+ 
+ 	if (log.isDebugEnabled())
+       	    log.debug("Created SignatureRSA using " + algorithmID);
+-	String provider=JCEMapper.getProviderId();
++	Provider providerThread = JCEMapper.getProviderSignatureThread();
++	String provider = null;
++	if (providerThread == null) {
++		provider=JCEMapper.getProviderId();
++	}
+ 	try {
+-	    if (provider==null) {
+-		this._signatureAlgorithm = Signature.getInstance(algorithmID);
+-	    } else {
+-      	 	this._signatureAlgorithm = Signature.getInstance(algorithmID,provider);
+-	    }
++		if (providerThread == null) {
++		    if (provider == null) {
++		    	this._signatureAlgorithm = Signature.getInstance(algorithmID);
++		    } else {
++	      	 	this._signatureAlgorithm = Signature.getInstance(algorithmID,provider);
++		    }
++		} else {
++			this._signatureAlgorithm = Signature.getInstance(algorithmID,providerThread);
++		}
+ 	} catch (java.security.NoSuchAlgorithmException ex) {
+ 	    Object[] exArgs = { algorithmID, ex.getLocalizedMessage() };
+ 
+Index: src/org/apache/xml/security/algorithms/implementations/SignatureDSA.java
+===================================================================
+--- src/org/apache/xml/security/algorithms/implementations/SignatureDSA.java	(revision 5)
++++ src/org/apache/xml/security/algorithms/implementations/SignatureDSA.java	(revision 34)
+@@ -21,6 +21,7 @@
+ import java.security.InvalidKeyException;
+ import java.security.Key;
+ import java.security.PrivateKey;
++import java.security.Provider;
+ import java.security.PublicKey;
+ import java.security.SecureRandom;
+ import java.security.Signature;
+@@ -36,6 +37,9 @@
+ /**
+  *
+  * @author $Author: mullan $
++ * Changes:
++ *   * changed to allow to specify a signature provider for thread. Usefull in multi-thread multi-signature provider environment.
++ * @author David Santos
+  */
+ public class SignatureDSA extends SignatureAlgorithmSpi {
+ 
+@@ -69,14 +73,21 @@
+         if (log.isDebugEnabled())
+       	    log.debug("Created SignatureDSA using " + algorithmID);
+ 
+-	String provider = JCEMapper.getProviderId();
++    	Provider providerThread = JCEMapper.getProviderSignatureThread();
++    	String provider = null;
++    	if (providerThread == null) {
++    		provider=JCEMapper.getProviderId();
++    	}
+         try {
+-	    if (provider == null) {
+-                this._signatureAlgorithm = Signature.getInstance(algorithmID);
+-	    } else {
+-                this._signatureAlgorithm = 
+-		    Signature.getInstance(algorithmID, provider);
+-	    }
++    		if (providerThread == null) {
++    		    if (provider == null) {
++    		    	this._signatureAlgorithm = Signature.getInstance(algorithmID);
++    		    } else {
++    	      	 	this._signatureAlgorithm = Signature.getInstance(algorithmID, provider);
++    		    }
++    		} else {
++    			this._signatureAlgorithm = Signature.getInstance(algorithmID, providerThread);
++    		}
+         } catch (java.security.NoSuchAlgorithmException ex) {
+             Object[] exArgs = { algorithmID, ex.getLocalizedMessage() };
+             throw new XMLSignatureException("algorithms.NoSuchAlgorithm", exArgs);
+Index: build.properties
+===================================================================
+--- build.properties	(revision 5)
++++ build.properties	(revision 34)
+@@ -1,18 +1,21 @@
+ # Proyecto
+-project.name=xmlsec
++project.name=xmlsec-1.4.2
+ # Directorios genéricos
+ dirSrc=./src;
+-dirLib=./lib
++# Esta variable se define en el fichero ../constants.properties
++# Es necesario sustituir esta entrada con la ruta donde se encuentre el repositorio maven (o en su defecto)
++# un directorio que contenga las librerías mediante una estructua similar
++#dir.lib=${M2_REPO}
+ dirUtil=./utils
+ dirRes=./resources
+ dirDist=./dist
+ dirBuild=./build
+-dirDoc=./doc
++dirDoc=./doc/site/javadoc
+ # Classpath de compilación
+ javac.clean=true
+ javac.classpath=\
+-    ${dirLib}/commons-logging-1.1.1.jar;\
+-    ${dirLib}/xalan.jar;
++    ${dir.lib}/commons-logging/commons-logging/1.1/commons-logging-1.1.jar;\
++    ${dir.lib}/xalan/xalan/2.7.1/xalan-2.7.1.jar;
+ # Optimizaciones y debug
+ javac.release=true
+ javac.debug=true
+Index: pom.xml
+===================================================================
+--- pom.xml	(revision 0)
++++ pom.xml	(revision 34)
+@@ -0,0 +1,60 @@
++<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
++  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
++  <parent>
++    <groupId>es.mityc.jumbo.adsi</groupId>
++      <artifactId>components</artifactId>
++      <version>1</version>
++  </parent>
++  <modelVersion>4.0.0</modelVersion>
++  <groupId>es.mityc.jumbo.adsi</groupId>
++  <artifactId>xmlsec-1.4.2-ADSI</artifactId>
++  <packaging>jar</packaging>
++  <version>1.0-SNAPSHOT</version>
++  <name>xmlsec-1.4.2-ADSI</name>
++  <url>http://www.mityc.es</url>
++  <dependencies>
++    <dependency>
++      <groupId>commons-logging</groupId>
++      <artifactId>commons-logging</artifactId>
++      <version>1.1</version>
++      <scope>compile</scope>
++    </dependency>
++    <dependency>
++      <groupId>xalan</groupId>
++      <artifactId>xalan</artifactId>
++      <version>2.7.1</version>
++      <scope>compile</scope>
++      <optional>true</optional>
++    </dependency>
++    <dependency>
++      <groupId>junit</groupId>
++      <artifactId>junit</artifactId>
++      <version>4.3.1</version>
++      <type>jar</type>
++      <scope>test</scope>
++      <optional>true</optional>
++    </dependency>
++    <dependency>
++      <groupId>log4j</groupId>
++      <artifactId>log4j</artifactId>
++      <version>1.2.14</version>
++      <type>jar</type>
++      <scope>test</scope>
++      <optional>true</optional>
++    </dependency>
++  </dependencies>
++  <build>
++  </build>
++  <licenses>
++    <license>
++      <name>Apache License 2.0</name>
++      <url>http://www.apache.org/licenses/</url>
++      <distribution>repo</distribution>
++      <comments>Apache License 2.0</comments>
++    </license>
++  </licenses>
++  <organization>
++    <name>Ministerio de Industria, Turismo y Comercio</name>
++    <url>http://www.mityc.es</url>
++  </organization>
++</project>
+Index: resources/META-INF/NOTICE.txt
+===================================================================
+--- resources/META-INF/NOTICE.txt	(revision 0)
++++ resources/META-INF/NOTICE.txt	(revision 34)
+@@ -0,0 +1,15 @@
++This product contains software developed by
++The Apache Software Foundation (http://www.apache.org/).
++
++It was originally based on software copyright (c) 2001, Institute for
++Data Communications Systems, <http://www.nue.et-inf.uni-siegen.de/>.
++
++The development of this software was partly funded by the European 
++Commission in the <WebSig> project in the ISIS Programme. 
++
++
++This library contains changes about the original project (avalaible
++in http://santuario.apache.org/Java/index.html). This changes are
++developed by Ministerio de Industria, Turismo y Comercio of Spain.
++You can obtain a copy of the changed resources by a request to
++Ctecnologia_planavanza@mityc.es
+\ No newline at end of file
+Index: resources/META-INF/LICENSE.txt
+===================================================================
+--- resources/META-INF/LICENSE.txt	(revision 0)
++++ resources/META-INF/LICENSE.txt	(revision 34)
+@@ -0,0 +1,202 @@
++
++                                 Apache License
++                           Version 2.0, January 2004
++                        http://www.apache.org/licenses/
++
++   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
++
++   1. Definitions.
++
++      "License" shall mean the terms and conditions for use, reproduction,
++      and distribution as defined by Sections 1 through 9 of this document.
++
++      "Licensor" shall mean the copyright owner or entity authorized by
++      the copyright owner that is granting the License.
++
++      "Legal Entity" shall mean the union of the acting entity and all
++      other entities that control, are controlled by, or are under common
++      control with that entity. For the purposes of this definition,
++      "control" means (i) the power, direct or indirect, to cause the
++      direction or management of such entity, whether by contract or
++      otherwise, or (ii) ownership of fifty percent (50%) or more of the
++      outstanding shares, or (iii) beneficial ownership of such entity.
++
++      "You" (or "Your") shall mean an individual or Legal Entity
++      exercising permissions granted by this License.
++
++      "Source" form shall mean the preferred form for making modifications,
++      including but not limited to software source code, documentation
++      source, and configuration files.
++
++      "Object" form shall mean any form resulting from mechanical
++      transformation or translation of a Source form, including but
++      not limited to compiled object code, generated documentation,
++      and conversions to other media types.
++
++      "Work" shall mean the work of authorship, whether in Source or
++      Object form, made available under the License, as indicated by a
++      copyright notice that is included in or attached to the work
++      (an example is provided in the Appendix below).
++
++      "Derivative Works" shall mean any work, whether in Source or Object
++      form, that is based on (or derived from) the Work and for which the
++      editorial revisions, annotations, elaborations, or other modifications
++      represent, as a whole, an original work of authorship. For the purposes
++      of this License, Derivative Works shall not include works that remain
++      separable from, or merely link (or bind by name) to the interfaces of,
++      the Work and Derivative Works thereof.
++
++      "Contribution" shall mean any work of authorship, including
++      the original version of the Work and any modifications or additions
++      to that Work or Derivative Works thereof, that is intentionally
++      submitted to Licensor for inclusion in the Work by the copyright owner
++      or by an individual or Legal Entity authorized to submit on behalf of
++      the copyright owner. For the purposes of this definition, "submitted"
++      means any form of electronic, verbal, or written communication sent
++      to the Licensor or its representatives, including but not limited to
++      communication on electronic mailing lists, source code control systems,
++      and issue tracking systems that are managed by, or on behalf of, the
++      Licensor for the purpose of discussing and improving the Work, but
++      excluding communication that is conspicuously marked or otherwise
++      designated in writing by the copyright owner as "Not a Contribution."
++
++      "Contributor" shall mean Licensor and any individual or Legal Entity
++      on behalf of whom a Contribution has been received by Licensor and
++      subsequently incorporated within the Work.
++
++   2. Grant of Copyright License. Subject to the terms and conditions of
++      this License, each Contributor hereby grants to You a perpetual,
++      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
++      copyright license to reproduce, prepare Derivative Works of,
++      publicly display, publicly perform, sublicense, and distribute the
++      Work and such Derivative Works in Source or Object form.
++
++   3. Grant of Patent License. Subject to the terms and conditions of
++      this License, each Contributor hereby grants to You a perpetual,
++      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
++      (except as stated in this section) patent license to make, have made,
++      use, offer to sell, sell, import, and otherwise transfer the Work,
++      where such license applies only to those patent claims licensable
++      by such Contributor that are necessarily infringed by their
++      Contribution(s) alone or by combination of their Contribution(s)
++      with the Work to which such Contribution(s) was submitted. If You
++      institute patent litigation against any entity (including a
++      cross-claim or counterclaim in a lawsuit) alleging that the Work
++      or a Contribution incorporated within the Work constitutes direct
++      or contributory patent infringement, then any patent licenses
++      granted to You under this License for that Work shall terminate
++      as of the date such litigation is filed.
++
++   4. Redistribution. You may reproduce and distribute copies of the
++      Work or Derivative Works thereof in any medium, with or without
++      modifications, and in Source or Object form, provided that You
++      meet the following conditions:
++
++      (a) You must give any other recipients of the Work or
++          Derivative Works a copy of this License; and
++
++      (b) You must cause any modified files to carry prominent notices
++          stating that You changed the files; and
++
++      (c) You must retain, in the Source form of any Derivative Works
++          that You distribute, all copyright, patent, trademark, and
++          attribution notices from the Source form of the Work,
++          excluding those notices that do not pertain to any part of
++          the Derivative Works; and
++
++      (d) If the Work includes a "NOTICE" text file as part of its
++          distribution, then any Derivative Works that You distribute must
++          include a readable copy of the attribution notices contained
++          within such NOTICE file, excluding those notices that do not
++          pertain to any part of the Derivative Works, in at least one
++          of the following places: within a NOTICE text file distributed
++          as part of the Derivative Works; within the Source form or
++          documentation, if provided along with the Derivative Works; or,
++          within a display generated by the Derivative Works, if and
++          wherever such third-party notices normally appear. The contents
++          of the NOTICE file are for informational purposes only and
++          do not modify the License. You may add Your own attribution
++          notices within Derivative Works that You distribute, alongside
++          or as an addendum to the NOTICE text from the Work, provided
++          that such additional attribution notices cannot be construed
++          as modifying the License.
++
++      You may add Your own copyright statement to Your modifications and
++      may provide additional or different license terms and conditions
++      for use, reproduction, or distribution of Your modifications, or
++      for any such Derivative Works as a whole, provided Your use,
++      reproduction, and distribution of the Work otherwise complies with
++      the conditions stated in this License.
++
++   5. Submission of Contributions. Unless You explicitly state otherwise,
++      any Contribution intentionally submitted for inclusion in the Work
++      by You to the Licensor shall be under the terms and conditions of
++      this License, without any additional terms or conditions.
++      Notwithstanding the above, nothing herein shall supersede or modify
++      the terms of any separate license agreement you may have executed
++      with Licensor regarding such Contributions.
++
++   6. Trademarks. This License does not grant permission to use the trade
++      names, trademarks, service marks, or product names of the Licensor,
++      except as required for reasonable and customary use in describing the
++      origin of the Work and reproducing the content of the NOTICE file.
++
++   7. Disclaimer of Warranty. Unless required by applicable law or
++      agreed to in writing, Licensor provides the Work (and each
++      Contributor provides its Contributions) on an "AS IS" BASIS,
++      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
++      implied, including, without limitation, any warranties or conditions
++      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
++      PARTICULAR PURPOSE. You are solely responsible for determining the
++      appropriateness of using or redistributing the Work and assume any
++      risks associated with Your exercise of permissions under this License.
++
++   8. Limitation of Liability. In no event and under no legal theory,
++      whether in tort (including negligence), contract, or otherwise,
++      unless required by applicable law (such as deliberate and grossly
++      negligent acts) or agreed to in writing, shall any Contributor be
++      liable to You for damages, including any direct, indirect, special,
++      incidental, or consequential damages of any character arising as a
++      result of this License or out of the use or inability to use the
++      Work (including but not limited to damages for loss of goodwill,
++      work stoppage, computer failure or malfunction, or any and all
++      other commercial damages or losses), even if such Contributor
++      has been advised of the possibility of such damages.
++
++   9. Accepting Warranty or Additional Liability. While redistributing
++      the Work or Derivative Works thereof, You may choose to offer,
++      and charge a fee for, acceptance of support, warranty, indemnity,
++      or other liability obligations and/or rights consistent with this
++      License. However, in accepting such obligations, You may act only
++      on Your own behalf and on Your sole responsibility, not on behalf
++      of any other Contributor, and only if You agree to indemnify,
++      defend, and hold each Contributor harmless for any liability
++      incurred by, or claims asserted against, such Contributor by reason
++      of your accepting any such warranty or additional liability.
++
++   END OF TERMS AND CONDITIONS
++
++   APPENDIX: How to apply the Apache License to your work.
++
++      To apply the Apache License to your work, attach the following
++      boilerplate notice, with the fields enclosed by brackets "[]"
++      replaced with your own identifying information. (Don't include
++      the brackets!)  The text should be enclosed in the appropriate
++      comment syntax for the file format. We also recommend that a
++      file or class name and description of purpose be included on the
++      same "printed page" as the copyright notice for easier
++      identification within third-party archives.
++
++   Copyright [yyyy] [name of copyright owner]
++
++   Licensed under the Apache License, Version 2.0 (the "License");
++   you may not use this file except in compliance with the License.
++   You may obtain a copy of the License at
++
++       http://www.apache.org/licenses/LICENSE-2.0
++
++   Unless required by applicable law or agreed to in writing, software
++   distributed under the License is distributed on an "AS IS" BASIS,
++   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++   See the License for the specific language governing permissions and
++   limitations under the License.
+Index: resources/META-INF/MANIFEST.MF
+===================================================================
+--- resources/META-INF/MANIFEST.MF	(revision 0)
++++ resources/META-INF/MANIFEST.MF	(revision 34)
+@@ -0,0 +1,10 @@
++Manifest-Version: 1.0
++Ant-Version: Apache Ant 1.7.0
++Created-By: 1.4.2_17-b06 (Sun Microsystems Inc.)
++Built-By: mullan
++
++Name: xmlsec
++Implementation-Title: Apache-XML-Security-J
++Implementation-Version: 1.4.2 June 23 2008
++Implementation-Vendor: Apache Software Foundation
++
+Index: resources/org/apache/xml/security/resource/config.dtd
+===================================================================
+--- resources/org/apache/xml/security/resource/config.dtd	(revision 0)
++++ resources/org/apache/xml/security/resource/config.dtd	(revision 34)
+@@ -0,0 +1,73 @@
++<?xml version='1.0' encoding='UTF-8' ?>
++
++<!ELEMENT Configuration (CanonicalizationMethods , TransformAlgorithms , JCEAlgorithmMappings , Log4J , ResourceBundles , UnitTests , ResourceResolvers , KeyResolvers)>
++
++<!ATTLIST Configuration  xmlns CDATA  #FIXED 'http://www.xmlsecurity.org/NS/#configuration' 
++target        CDATA  #IMPLIED>
++<!ELEMENT CanonicalizationMethods (CanonicalizationMethod+)>
++
++<!ATTLIST CanonicalizationMethods  JAVACLASS CDATA  #FIXED 'org.apache.xml.security.c14n.Canonicalizer' >
++<!ELEMENT CanonicalizationMethod EMPTY>
++
++<!ATTLIST CanonicalizationMethod  URI       CDATA  #REQUIRED
++                                    JAVACLASS CDATA  #REQUIRED >
++<!ELEMENT TransformAlgorithms (TransformAlgorithm+)>
++
++<!ATTLIST TransformAlgorithms  JAVACLASS CDATA  #FIXED 'org.apache.xml.security.transforms.Transform' >
++<!ELEMENT TransformAlgorithm EMPTY>
++
++<!ATTLIST TransformAlgorithm  URI       CDATA  #REQUIRED
++                                JAVACLASS CDATA  #REQUIRED >
++<!ELEMENT JCEAlgorithmMappings (Providers , Algorithms)>
++
++<!ELEMENT Providers (Provider+)>
++
++<!ELEMENT Provider EMPTY>
++
++<!ATTLIST Provider  Id          ID     #REQUIRED
++                      Class       CDATA  #REQUIRED
++                      Info        CDATA  #IMPLIED
++                      ProviderURL CDATA  #IMPLIED >
++<!ELEMENT Algorithms (Algorithm+)>
++
++<!ELEMENT Algorithm (ProviderAlgo+)>
++
++<!ATTLIST Algorithm  URI            CDATA  #REQUIRED
++                       Description    CDATA  #IMPLIED
++                       AlgorithmClass CDATA  #IMPLIED >
++<!ELEMENT ProviderAlgo EMPTY>
++
++<!ATTLIST ProviderAlgo  ProviderId IDREF  #REQUIRED
++                          JCEName    CDATA  #REQUIRED
++                          JCEAlias   CDATA  #IMPLIED >
++<!ELEMENT Log4J EMPTY>
++
++<!ATTLIST Log4J  configFile CDATA  'data/log4j.xml' >
++<!ELEMENT ResourceBundles (ResourceBundle+)>
++
++<!ATTLIST ResourceBundles  defaultLanguageCode CDATA  'de'
++                             defaultCountryCode  CDATA  'DE' >
++<!ELEMENT ResourceBundle EMPTY>
++
++<!ATTLIST ResourceBundle  LanguageCode CDATA  #REQUIRED
++                            CountryCode  CDATA  #REQUIRED
++                            LOCATION     CDATA  #REQUIRED >
++<!ELEMENT UnitTests (UnitTest+)>
++
++<!ATTLIST UnitTests  JAVACLASS CDATA  #FIXED 'org.apache.xml.security.test.AllTests' >
++<!ELEMENT ResourceResolvers (Resolver+)>
++
++<!ELEMENT Resolver EMPTY>
++
++<!ATTLIST Resolver  JAVACLASS   CDATA  #REQUIRED
++                      DESCRIPTION CDATA  #IMPLIED >
++<!ELEMENT KeyResolvers (KeyResolver+)>
++<!ATTLIST KeyResolvers  JAVACLASS CDATA  #FIXED 'org.apache.xml.security.keys.KeyResolver' >
++
++<!ELEMENT KeyResolver EMPTY>
++
++<!ATTLIST KeyResolver  URI       CDATA  #REQUIRED
++                         JAVACLASS CDATA  #REQUIRED >
++<!ELEMENT UnitTest (#PCDATA)>
++
++<!ATTLIST UnitTest  JAVACLASS CDATA  #REQUIRED >
+
+Property changes on: C:\java\opensource\xmlsec-1.4.2\resources\org\apache\xml\security\resource\config.dtd
+___________________________________________________________________
+Added: svn:mergeinfo
+
+Index: resources/org/apache/xml/security/resource/schema/xenc-schema.rng
+===================================================================
+--- resources/org/apache/xml/security/resource/schema/xenc-schema.rng	(revision 0)
++++ resources/org/apache/xml/security/resource/schema/xenc-schema.rng	(revision 34)
+@@ -0,0 +1,219 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<!-- http://www.xml.com/lpt/a/2002/01/23/relaxng.html -->
++<!-- http://www.oasis-open.org/committees/relax-ng/tutorial-20011203.html -->
++<!-- http://www.zvon.org/xxl/XMLSchemaTutorial/Output/ser_wildcards_st8.html -->
++<!-- http://lists.oasis-open.org/archives/relax-ng-comment/200206/maillist.html -->
++
++<grammar xmlns='http://relaxng.org/ns/structure/1.0'
++        xmlns:ds='http://www.w3.org/2000/09/xmldsig#'
++        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
++        ns="http://www.w3.org/2001/04/xmlenc#"
++        datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
++
++    <include href="http://www.w3.org/Signature/Drafts/xmldsig-core/xmldsig-core-schema.rng">
++    <!-- Used for DigestMethod, KeyInfoType and anyThing -->
++    <!-- Since xmldsig-core also has a start, I have to include it
++        in the include for redefinition. -->
++        <start>
++            <choice>
++                <!-- We get to define the permissible root elements! -->
++                <element name="EncryptedData"><ref name="EncryptedDataType"/></element>
++                <element name="EncryptedKey"><ref name="EncryptedKeyType"/></element>
++            </choice>
++        </start>   
++        
++        <define name='anyThing'>
++            <zeroOrMore>
++                <choice>
++                    <text/>
++                    <element>
++                        <anyName>
++                            <except>
++                                <nsName/>
++                                <nsName ns='http://www.w3.org/2000/09/xmldsig#'/>
++                            </except>
++                        </anyName>
++                        <ref name='anyThing'/>
++                        <zeroOrMore>
++                            <attribute>
++                              <anyName/>
++                            </attribute>
++                        </zeroOrMore>
++                    </element>
++                </choice>
++            </zeroOrMore>
++            </define>
++        
++        
++    </include>
++    
++        <!-- Import definitions from the xmldsig rng -->
++
++        <define name="KeyInfoType" combine="interleave">
++            <zeroOrMore>
++                <choice>
++                    <element name="EncryptedKey"><ref name="EncryptedKeyType"/></element>
++                    <element name="AgreementMethod"><ref name="AgreementMethodType"/></element>
++                </choice>
++            </zeroOrMore>    
++        </define>
++
++        <define name="DigestMethodType" combine="choice">
++            <notAllowed/>
++         </define>
++
++        <define name="TransformType" combine="choice">
++            <notAllowed/>
++         </define>
++
++    <!-- Now redefined in the include statement
++        <define name="anyThing" combine="choice">
++            <notAllowed/>
++         </define>
++    -->
++
++    <!-- End import -->
++        
++  
++    <define name="EncryptedDataType">
++          <ref name="EncryptedType"/>
++    </define>
++  
++  
++    <define name="EncryptedKeyType">
++            <ref name="EncryptedType"/>
++            <optional><element name='ReferenceList'>
++                <ref name="ReferenceListType"/></element>
++            </optional>
++            <optional><element name='CarriedKeyName'><data type="string"/></element></optional>
++            <optional><attribute name='Recipient'> <data type="string"/></attribute></optional>
++    </define>
++
++    
++     <define name="EncryptedType">
++        <element name="EncryptionMethod"><ref name="EncryptionMethodType"/></element>
++        <optional>
++            <element name="KeyInfo" ns="http://www.w3.org/2000/09/xmldsig#">
++                <ref name="KeyInfoType"/>
++            </element>
++        </optional>
++        <optional>
++            <element name="CipherData"><ref name="CipherDataType"/></element>
++        </optional> 
++        <optional>
++             <element name="EncryptionProperties"><ref name="EncryptionPropertiesType"/></element>
++        </optional>
++        <optional><attribute name="Id"><data type="ID"/></attribute></optional>
++        <optional><attribute name="Type"><data type="anyURI"/></attribute></optional>
++        <optional><attribute name="MimeType"><data type="string"/></attribute></optional>
++        <optional><attribute name="Encoding"><data type="anyURI"/></attribute></optional>
++        <optional><attribute name='xsi:schemaLocation'/></optional>
++    </define> 
++
++    <define name="EncryptionMethodType">
++        <zeroOrMore>
++            <choice>
++                <element name="KeySize">
++                    <data type="integer"/>
++                </element>
++                <element name="OAEPparams">
++                    <data type="base64Binary"/>
++                </element>
++                <text/>
++                <element name='DigestMethod' ns="http://www.w3.org/2000/09/xmldsig#">
++                    <ref name="DigestMethodType"/>
++                </element>
++            </choice>
++        </zeroOrMore>
++        <attribute name="Algorithm"><data type="anyURI"/></attribute>
++    </define>
++
++            
++    <define name="AgreementMethodType">
++        <zeroOrMore>
++            <choice>
++                <element name="KA-Nonce">
++                    <data type="base64Binary"/>
++                </element>
++                <element name='DigestMethod' ns="http://www.w3.org/2000/09/xmldsig#">
++                    <ref name="DigestMethodType"/>
++                </element>
++                <text/>
++                <element>
++                    <nsName ns="http://www.w3.org/2000/09/xmldsig#"/>
++                    <ref name="anyThing"/>
++                </element>
++                <element name="OriginatorKeyInfo"><ref name="KeyInfoType"/></element>
++                <element name="RecipientKeyInfo"><ref name="KeyInfoType"/></element>
++            </choice>
++        </zeroOrMore>
++        <attribute name="Algorithm"><data type="anyURI"/></attribute>
++    </define>            
++            
++            
++    <define name="ReferenceListType">
++        <oneOrMore>
++            <choice>
++                <element name="DataReference">
++                    <text/>
++                    <attribute name="URI"><data type="anyURI"/></attribute>
++                </element>
++                <element name="KeyReference">
++                    <text/>
++                    <attribute name="URI"><data type="anyURI"/></attribute>
++                </element>
++            </choice>
++        </oneOrMore>
++    </define>
++    
++    
++    <define name="CipherDataType">
++        <choice>
++            <element name="CipherValue"><data type="base64Binary"/></element>
++            <element name="CipherReference">
++                <element name="Transforms">
++                  <oneOrMore>
++                      <element name='Transform' ns="http://www.w3.org/2000/09/xmldsig#">
++                          <ref name='TransformType'/>
++                        </element>
++                    </oneOrMore>
++                </element>
++                <attribute name="URI">
++                    <data type="anyURI"/>
++                </attribute>      
++            </element>
++        </choice>
++    </define>
++    
++    
++    <define name="EncryptionPropertiesType">        
++        <element name="EncryptionProperty">
++          <zeroOrMore>
++                <element>
++                    <anyName/>
++                    <text/>
++                </element>
++            </zeroOrMore>
++            <optional>
++                <attribute name="Target">
++                    <data type="anyURI"/>
++                </attribute>  
++            </optional>
++            <optional>                
++                <attribute name="Id">
++                    <data type="ID"/>
++                </attribute>    
++            </optional>
++        </element>
++        
++        <optional>
++            <attribute name="Id">
++                <data type="ID"/>
++            </attribute>    
++        </optional>
++        <zeroOrMore>
++            <attribute><nsName ns="http://www.w3.org/XML/1998/namespace"/></attribute>
++        </zeroOrMore>
++    </define>
++
++</grammar>
+\ No newline at end of file
+
+Property changes on: C:\java\opensource\xmlsec-1.4.2\resources\org\apache\xml\security\resource\schema\xenc-schema.rng
+___________________________________________________________________
+Added: svn:mergeinfo
+
+Index: resources/org/apache/xml/security/resource/schema/xmldsig-core-schema.rng
+===================================================================
+--- resources/org/apache/xml/security/resource/schema/xmldsig-core-schema.rng	(revision 0)
++++ resources/org/apache/xml/security/resource/schema/xmldsig-core-schema.rng	(revision 34)
+@@ -0,0 +1,339 @@
++<?xml version='1.0' encoding='UTF-8'?>
++<!-- http://www.xml.com/lpt/a/2002/01/23/relaxng.html -->
++<!-- http://www.oasis-open.org/committees/relax-ng/tutorial-20011203.html -->
++<!-- http://www.zvon.org/xxl/XMLSchemaTutorial/Output/ser_wildcards_st8.html -->
++<!-- http://lists.oasis-open.org/archives/relax-ng-comment/200206/maillist.html -->
++
++<grammar xmlns='http://relaxng.org/ns/structure/1.0'
++        xmlns:ds='http://www.w3.org/2000/09/xmldsig#'
++        xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
++        ns='http://www.w3.org/2000/09/xmldsig#'
++        datatypeLibrary='http://www.w3.org/2001/XMLSchema-datatypes'>
++
++    <start>
++            <element name='Signature'><ref name='SignatureType'/></element>
++    </start>   
++    
++    <define name='CryptoBinary'>
++        <data type='base64Binary'/>
++    </define>
++    
++    <define name='SignatureType'>
++        <element name='SignedInfo'><ref name='SignedInfoType'/></element>
++        <element name='SignatureValue'><ref name='SignatureValueType'/></element>
++        <optional><element name='KeyInfo'><ref name='KeyInfoType'/></element></optional>
++        <zeroOrMore><element name='Object'><ref name='ObjectType'/></element></zeroOrMore>
++        <optional><attribute name='Id'><data type='ID'/></attribute></optional>
++        <optional><attribute name='xsi:schemaLocation'/></optional>
++    </define>
++
++    <define name='SignatureValueType'>
++        <data type='base64Binary'/>
++        <optional><attribute name='Id'><data type='ID'/></attribute></optional>
++    </define>
++    
++<!-- Start SignedInfo -->
++    
++    <define name='SignedInfoType'>
++        <element name='CanonicalizationMethod'><ref name='CanonicalizationMethodType'/></element>
++        <element name='SignatureMethod'><ref name='SignatureMethodType'/></element>
++        <optional><element name='KeyInfo'><ref name='KeyInfoType'/></element></optional>
++        <oneOrMore><element name='Reference'><ref name='ReferenceType'/></element></oneOrMore>
++        <optional><attribute name='Id'><data type='ID'/></attribute></optional>
++    </define>    
++
++    <define name='CanonicalizationMethodType'>
++        <zeroOrMore><ref name='anyThing'/></zeroOrMore>
++        <optional><attribute name='Algorithm'><data type='anyURI'/></attribute></optional>
++    </define>    
++
++
++    <define name='SignatureMethodType'>
++        <optional><element name='HMACOutputLength'><data type='integer'/></element></optional>
++        <zeroOrMore><ref name='anyThing'/></zeroOrMore>
++        <optional><attribute name='Algorithm'><data type='anyURI'/></attribute></optional>
++    </define>    
++        
++<!-- Start Reference -->
++    
++    <define name='ReferenceType'>
++        <optional><element name='Transforms'><ref name='TransformsType'/></element></optional>
++        <element name='DigestMethod'><ref name='DigestMethodType'/></element>
++        <element name='DigestValue'><ref name='DigestValueType'/></element>
++        <optional><attribute name='Type'><data type='anyURI'/></attribute></optional>
++        <optional><attribute name='URI'><data type='anyURI'/></attribute></optional>
++        <optional><attribute name='Id'><data type='ID'/></attribute></optional>
++     </define>
++
++    <define name='TransformsType'>
++        <oneOrMore><element name='Transform'><ref name='TransformType'/></element></oneOrMore>
++    </define>
++
++    <define name='TransformType'>
++        <optional><element name='XPath'><data type='string'/></element></optional>
++        <zeroOrMore><ref name='anyThing'/></zeroOrMore>
++        <attribute name='Algorithm'><data type='anyURI'/></attribute>
++    </define>    
++
++<!-- End Reference -->
++
++    <define name='DigestMethodType'>
++        <zeroOrMore><ref name='anyThing'/></zeroOrMore>
++        <attribute name='Algorithm'><data type='anyURI'/></attribute>
++    </define>   
++
++    <define name='DigestValueType'>
++        <data type='base64Binary'/>
++    </define>  
++    
++<!-- End SignedInfo -->
++
++<!-- Start KeyInfo -->
++    
++    <define name='KeyInfoType'>
++        <oneOrMore>
++            <choice>
++                <element name='KeyName'><data type='string'/></element>
++                <element name='KeyValue'><ref name='KeyValueType'/></element>
++                <element name='RetrievalMethod'><ref name='RetrievalMethodType'/></element>
++                <element name='X509Data'><ref name='X509DataType'/></element>
++                <element name='PGPData'><ref name='PGPDataType'/></element>
++                <element name='SPKIData'><ref name='SPKIDataType'/></element>
++                <element name='MgmtData'><data type='string'/></element>
++                <ref name='anyThing'/>
++            </choice>
++        </oneOrMore>
++        <optional><attribute name='Id'><data type='ID'/></attribute></optional>
++</define>
++
++    <define name='KeyValueType'>
++            <choice>
++                <text/>
++                <element name='DSAKeyValue'><ref name='DSAKeyValueType'/></element>
++                <element name='RSAKeyValue'><ref name='RSAKeyValueType'/></element>
++                <ref name='anyThing'/>
++            </choice>
++    </define>
++
++    <define name='RetrievalMethodType'>
++        <optional><element name='Transforms'><ref name='TransformsType'/></element></optional>
++        <optional><attribute name='Type'><data type='anyURI'/></attribute></optional>
++        <optional><attribute name='URI'><data type='anyURI'/></attribute></optional>
++    </define>
++
++<!-- Start X509Data -->
++
++    <define name='X509DataType'>
++        <oneOrMore>
++            <choice>
++                <element name='X509IssuerSerial'>
++                    <element name='X509IssuerName'>
++                        <data type='string'/>
++                    </element>
++                    <element name='X509SerialNumber'>
++                        <data type='integer'/>
++                    </element>
++                </element>
++                <element name='X509SKI'>
++                    <data type='base64Binary'/>
++                </element>
++                <element name='X509SubjectName'>
++                    <data type='string'/>
++                </element>
++                <element name='X509Certificate'>
++                    <data type='base64Binary'/>
++                </element>
++                <element name='X509CRL'>
++                    <data type='base64Binary'/>
++                </element>
++                <ref name='anyThing'/>
++            </choice>
++        </oneOrMore>
++    </define>
++
++<!-- End X509Data -->
++
++<!-- Begin PGPData -->
++
++    <define name='PGPDataType'>
++        <choice>
++            <group>
++                <element name='PGPKeyID'>
++                    <data type='base64Binary'/>
++                </element>
++                <optional>
++                    <element name='PGPKeyPacket'>
++                        <data type='base64Binary'/>
++                    </element>
++                </optional>
++                <zeroOrMore>
++                    <ref name='anyThing'/>
++                </zeroOrMore>
++            </group>
++            <group>
++                <element name='PGPKeyPacket'>
++                    <data type='base64Binary'/>
++                </element>
++                <zeroOrMore>
++                    <ref name='anyThing'/>
++                </zeroOrMore>
++            </group>
++        </choice>
++    </define>
++
++<!-- End PGPData -->
++
++<!-- Begin SPKIData -->
++
++    <define name='SPKIDataType'>
++        <oneOrMore>
++            <element name='SPKISexp'>
++                <data type='base64Binary'/>
++            </element>
++            <optional>
++                <ref name='anyThing'/>
++            </optional>
++        </oneOrMore>
++    </define>
++    
++<!-- End SPKIData -->
++
++<!-- End KeyInfo -->
++
++
++<!-- Start Object (Manifest, SignatureProperty) -->
++
++    <define name='ObjectType'>
++        <zeroOrMore>
++            <choice>
++                <element name='Manifest'><ref name='ManifestType'/></element>
++                <element name='SignatureProperties'><ref name='SignaturePropertiesType'/></element>                
++                <ref name='anyThing'/>
++            </choice>
++        </zeroOrMore>
++        <optional>
++            <attribute name='Encoding'>
++                <data type='anyURI'/>
++            </attribute>
++        </optional>
++        <optional>
++            <attribute name='MimeType'>
++                <data type='string'/>
++            </attribute>
++        </optional>
++        <optional>
++            <attribute name='Id'>
++                <data type='ID'/>
++            </attribute>
++        </optional>
++    </define>
++
++    <define name='ManifestType'>
++        <oneOrMore>
++            <element name='Reference'><ref name='ReferenceType'/></element>
++        </oneOrMore>
++        <optional><attribute name='Id'><data type='ID'/></attribute></optional>
++    </define>
++
++    <define name='SignaturePropertiesType'>
++        <oneOrMore>
++            <element name='SignatureProperty'><ref name='SignaturePropertyType'/></element>
++        </oneOrMore>
++        <optional>
++            <attribute name='Id'>
++                <data type='ID'/>
++            </attribute>
++        </optional>
++    </define>
++
++    <define name='SignaturePropertyType'>
++        <oneOrMore><ref name='anyThing'/></oneOrMore>
++        <optional>
++            <attribute name='Id'>
++                <data type='ID'/>
++            </attribute>
++        </optional>
++        <attribute name='Target'>
++            <data type='anyURI'/>
++        </attribute>
++    </define>
++
++<!-- End Object (Manifest, SignatureProperty) -->
++
++
++<!-- Start KeyValue Element-types -->
++
++    <define name='DSAKeyValueType'>
++        <optional>
++            <element name='P'>
++                <ref name='CryptoBinary'/>
++            </element>
++            <element name='Q'>
++                <ref name='CryptoBinary'/>
++            </element>
++        </optional>
++        <optional>
++            <element name='G'>
++                <ref name='CryptoBinary'/>
++            </element>
++        </optional>
++        <element name='Y'>
++            <ref name='CryptoBinary'/>
++        </element>
++        <optional>
++            <element name='J'>
++                <ref name='CryptoBinary'/>
++            </element>
++        </optional>
++        <optional>
++            <element name='Seed'>
++                <ref name='CryptoBinary'/>
++            </element>
++            <element name='PgenCounter'>
++                <ref name='CryptoBinary'/>
++            </element>
++        </optional>
++    </define>
++
++    <define name='RSAKeyValueType'>
++        <element name='Modulus'>
++            <ref name='CryptoBinary'/>
++        </element>
++        <element name='Exponent'>
++            <ref name='CryptoBinary'/>
++        </element>
++    </define>
++
++
++<!-- End KeyValue Element-types -->
++
++<!-- End Signature -->
++
++
++        <!-- This should emulate the ANY content model under lax validation -->
++        <define name='anyThing'>
++            <zeroOrMore>
++                <choice>
++                    <text/>
++                    <element>
++                        <!-- "except" provided for DTD compatibility -->
++                        <!-- [1] ns='http://www.oasis-open.org/committees/relax-ng/compatibility.html#id' -->
++                        <anyName>
++                            <except>
++                                <nsName/>
++                                <!--  <nsName ns='http://www.w3.org/2001/04/xmlenc#'/>  -->
++                            </except>
++                        </anyName>
++                        <ref name='anyThing'/>
++                        <zeroOrMore>
++                            <attribute>
++                              <anyName/>
++                            </attribute>
++                        </zeroOrMore>
++                    </element>
++                </choice>
++            </zeroOrMore>
++            </define>
++            
++
++</grammar>
+\ No newline at end of file
+
+Property changes on: C:\java\opensource\xmlsec-1.4.2\resources\org\apache\xml\security\resource\schema\xmldsig-core-schema.rng
+___________________________________________________________________
+Added: svn:mergeinfo
+
+Index: resources/org/apache/xml/security/resource/schema/etsi.xsd
+===================================================================
+--- resources/org/apache/xml/security/resource/schema/etsi.xsd	(revision 0)
++++ resources/org/apache/xml/security/resource/schema/etsi.xsd	(revision 34)
+@@ -0,0 +1,347 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<!-- edited with XML Spy v4.3 U (http://www.xmlspy.com) by XMLSpy v4 (Altova) -->
++<xsd:schema targetNamespace="http://uri.etsi.org/01903/v1.1.1#" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://uri.etsi.org/01903/v1.1.1#" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" elementFormDefault="qualified" xsi:schemaLocation="http://www.w3.org/2000/09/xmldsig# xmldsig-core-schema.xsd">
++	<xsd:element name="Any" type="AnyType"/>
++	<xsd:complexType name="AnyType" mixed="true">
++		<xsd:sequence>
++			<xsd:any namespace="##any"/>
++		</xsd:sequence>
++		<xsd:anyAttribute namespace="##any"/>
++	</xsd:complexType>
++	<xsd:element name="ObjectIdentifier" type="ObjectIdentifierType"/>
++	<xsd:complexType name="ObjectIdentifierType">
++		<xsd:sequence>
++			<xsd:element name="Identifier" type="IdentifierType"/>
++			<xsd:element name="Description" type="xsd:string" minOccurs="0"/>
++			<xsd:element name="DocumentationReferences" type="DocumentationReferencesType" minOccurs="0"/>
++		</xsd:sequence>
++	</xsd:complexType>
++	<xsd:complexType name="IdentifierType">
++		<xsd:simpleContent>
++			<xsd:extension base="xsd:anyURI">
++				<xsd:attribute name="Qualifier" type="QualifierType" use="optional"/>
++			</xsd:extension>
++		</xsd:simpleContent>
++	</xsd:complexType>
++	<xsd:simpleType name="QualifierType">
++		<xsd:restriction base="xsd:string">
++			<xsd:enumeration value="OIDAsURI"/>
++			<xsd:enumeration value="OIDAsURN"/>
++		</xsd:restriction>
++	</xsd:simpleType>
++	<xsd:complexType name="DocumentationReferencesType">
++		<xsd:sequence maxOccurs="unbounded">
++			<xsd:element name="DocumentationReference" type="xsd:anyURI"/>
++		</xsd:sequence>
++	</xsd:complexType>
++	<xsd:element name="EncapsulatedPKIData" type="EncapsulatedPKIDataType"/>
++	<xsd:complexType name="EncapsulatedPKIDataType">
++		<xsd:simpleContent>
++			<xsd:extension base="xsd:base64Binary">
++				<xsd:attribute name="Id" type="xsd:ID" use="optional"/>
++			</xsd:extension>
++		</xsd:simpleContent>
++	</xsd:complexType>
++	<xsd:element name="TimeStamp" type="TimeStampType"/>
++	<xsd:complexType name="TimeStampType">
++		<xsd:sequence>
++			<xsd:element name="HashDataInfo" type="HashDataInfoType" maxOccurs="unbounded"/>
++			<xsd:choice>
++				<xsd:element name="EncapsulatedTimeStamp" type="EncapsulatedPKIDataType"/>
++				<xsd:element name="XMLTimeStamp" type="AnyType"/>
++			</xsd:choice>
++		</xsd:sequence>
++	</xsd:complexType>
++	<xsd:complexType name="HashDataInfoType">
++		<xsd:sequence>
++			<xsd:element name="Transforms" type="ds:TransformsType" minOccurs="0"/>
++		</xsd:sequence>
++		<xsd:attribute name="uri" type="xsd:anyURI" use="required"/>
++	</xsd:complexType>
++	<xsd:element name="QualifyingProperties" type="QualifyingPropertiesType"/>
++	<xsd:complexType name="QualifyingPropertiesType">
++		<xsd:sequence>
++			<xsd:element name="SignedProperties" type="SignedPropertiesType" minOccurs="0"/>
++			<xsd:element name="UnsignedProperties" type="UnsignedPropertiesType" minOccurs="0"/>
++		</xsd:sequence>
++		<xsd:attribute name="Target" type="xsd:anyURI" use="required"/>
++		<xsd:attribute name="Id" type="xsd:ID" use="optional"/>
++	</xsd:complexType>
++	<xsd:element name="SignedProperties" type="SignedPropertiesType"/>
++	<xsd:complexType name="SignedPropertiesType">
++		<xsd:sequence>
++			<xsd:element name="SignedSignatureProperties" type="SignedSignaturePropertiesType"/>
++			<xsd:element name="SignedDataObjectProperties" type="SignedDataObjectPropertiesType" minOccurs="0"/>
++		</xsd:sequence>
++		<xsd:attribute name="Id" type="xsd:ID" use="optional"/>
++	</xsd:complexType>
++	<xsd:element name="UnsignedProperties" type="UnsignedPropertiesType"/>
++	<xsd:complexType name="UnsignedPropertiesType">
++		<xsd:sequence>
++			<xsd:element name="UnsignedSignatureProperties" type="UnsignedSignaturePropertiesType" minOccurs="0"/>
++			<xsd:element name="UnsignedDataObjectProperties" type="UnsignedDataObjectPropertiesType" minOccurs="0"/>
++		</xsd:sequence>
++		<xsd:attribute name="Id" type="xsd:ID" use="optional"/>
++	</xsd:complexType>
++	<xsd:element name="SignedSignatureProperties" type="SignedSignaturePropertiesType"/>
++	<xsd:complexType name="SignedSignaturePropertiesType">
++		<xsd:sequence>
++			<xsd:element name="SigningTime" type="xsd:dateTime"/>
++			<xsd:element name="SigningCertificate" type="CertIDListType"/>
++			<xsd:element name="SignaturePolicyIdentifier" type="SignaturePolicyIdentifierType"/>
++			<xsd:element name="SignatureProductionPlace" type="SignatureProductionPlaceType" minOccurs="0"/>
++			<xsd:element name="SignerRole" type="SignerRoleType" minOccurs="0"/>
++		</xsd:sequence>
++	</xsd:complexType>
++	<xsd:element name="SignedDataObjectProperties" type="SignedDataObjectPropertiesType"/>
++	<xsd:complexType name="SignedDataObjectPropertiesType">
++		<xsd:sequence>
++			<xsd:element name="DataObjectFormat" type="DataObjectFormatType" minOccurs="0" maxOccurs="unbounded"/>
++			<xsd:element name="CommitmentTypeIndication" type="CommitmentTypeIndicationType" minOccurs="0" maxOccurs="unbounded"/>
++			<xsd:element name="AllDataObjectsTimeStamp" type="TimeStampType" minOccurs="0" maxOccurs="unbounded"/>
++			<xsd:element name="IndividualDataObjectsTimeStamp" type="TimeStampType" minOccurs="0" maxOccurs="unbounded"/>
++		</xsd:sequence>
++	</xsd:complexType>
++	<xsd:element name="UnsignedSignatureProperties" type="UnsignedSignaturePropertiesType"/>
++	<xsd:complexType name="UnsignedSignaturePropertiesType">
++		<xsd:sequence>
++			<xsd:element name="CounterSignature" type="CounterSignatureType" minOccurs="0" maxOccurs="unbounded"/>
++			<xsd:element name="SignatureTimeStamp" type="TimeStampType" minOccurs="0" maxOccurs="unbounded"/>
++			<xsd:element name="CompleteCertificateRefs" type="CompleteCertificateRefsType" minOccurs="0"/>
++			<xsd:element name="CompleteRevocationRefs" type="CompleteRevocationRefsType" minOccurs="0"/>
++			<xsd:choice>
++				<xsd:element name="SigAndRefsTimeStamp" type="TimeStampType" minOccurs="0" maxOccurs="unbounded"/>
++				<xsd:element name="RefsOnlyTimeStamp" type="TimeStampType" minOccurs="0" maxOccurs="unbounded"/>
++			</xsd:choice>
++			<xsd:element name="CertificateValues" type="CertificateValuesType" minOccurs="0"/>
++			<xsd:element name="RevocationValues" type="RevocationValuesType" minOccurs="0"/>
++			<xsd:element name="ArchiveTimeStamp" type="TimeStampType" minOccurs="0" maxOccurs="unbounded"/>
++		</xsd:sequence>
++	</xsd:complexType>
++	<xsd:element name="UnsignedDataObjectProperties" type="UnsignedDataObjectPropertiesType"/>
++	<xsd:complexType name="UnsignedDataObjectPropertiesType">
++		<xsd:sequence>
++			<xsd:element name="UnsignedDataObjectProperty" type="AnyType" minOccurs="0" maxOccurs="unbounded"/>
++		</xsd:sequence>
++	</xsd:complexType>
++	<xsd:element name="QualifyingPropertiesReference" type="QualifyingPropertiesReferenceType"/>
++	<xsd:complexType name="QualifyingPropertiesReferenceType">
++		<xsd:sequence>
++			<xsd:element name="Transforms" type="ds:TransformsType" minOccurs="0"/>
++		</xsd:sequence>
++		<xsd:attribute name="URI" type="xsd:anyURI" use="required"/>
++		<xsd:attribute name="Id" type="xsd:ID" use="optional"/>
++	</xsd:complexType>
++	<xsd:element name="SigningTime" type="xsd:dateTime"/>
++	<xsd:element name="SigningCertificate" type="CertIDListType"/>
++	<xsd:complexType name="CertIDListType">
++		<xsd:sequence>
++			<xsd:element name="Cert" type="CertIDType" maxOccurs="unbounded"/>
++		</xsd:sequence>
++	</xsd:complexType>
++	<xsd:complexType name="CertIDType">
++		<xsd:sequence>
++			<xsd:element name="CertDigest" type="DigestAlgAndValueType"/>
++			<xsd:element name="IssuerSerial" type="ds:X509IssuerSerialType"/>
++		</xsd:sequence>
++	</xsd:complexType>
++	<xsd:complexType name="DigestAlgAndValueType">
++		<xsd:sequence>
++			<xsd:element name="DigestMethod" type="ds:DigestMethodType"/>
++			<xsd:element name="DigestValue" type="ds:DigestValueType"/>
++		</xsd:sequence>
++	</xsd:complexType>
++	<xsd:element name="SignaturePolicyIdentifier" type="SignaturePolicyIdentifierType"/>
++	<xsd:complexType name="SignaturePolicyIdentifierType">
++		<xsd:choice>
++			<xsd:element name="SignaturePolicyId" type="SignaturePolicyIdType"/>
++			<xsd:element name="SignaturePolicyImplied"/>
++		</xsd:choice>
++	</xsd:complexType>
++	<xsd:complexType name="SignaturePolicyIdType">
++		<xsd:sequence>
++			<xsd:element name="SigPolicyId" type="ObjectIdentifierType"/>
++			<xsd:element ref="ds:Transforms" minOccurs="0"/>
++			<xsd:element name="SigPolicyHash" type="DigestAlgAndValueType"/>
++			<xsd:element name="SigPolicyQualifiers" type="SigPolicyQualifiersListType" minOccurs="0"/>
++		</xsd:sequence>
++	</xsd:complexType>
++	<xsd:complexType name="SigPolicyQualifiersListType">
++		<xsd:sequence>
++			<xsd:element name="SigPolicyQualifier" type="AnyType" maxOccurs="unbounded"/>
++		</xsd:sequence>
++	</xsd:complexType>
++	<xsd:element name="SPURI" type="xsd:anyURI"/>
++	<xsd:element name="SPUserNotice" type="SPUserNoticeType"/>
++	<xsd:complexType name="SPUserNoticeType">
++		<xsd:sequence>
++			<xsd:element name="NoticeRef" type="NoticeReferenceType" minOccurs="0"/>
++			<xsd:element name="ExplicitText" type="xsd:string" minOccurs="0"/>
++		</xsd:sequence>
++	</xsd:complexType>
++	<xsd:complexType name="NoticeReferenceType">
++		<xsd:sequence>
++			<xsd:element name="Organization" type="xsd:string"/>
++			<xsd:element name="NoticeNumbers" type="IntegerListType"/>
++		</xsd:sequence>
++	</xsd:complexType>
++	<xsd:complexType name="IntegerListType">
++		<xsd:sequence>
++			<xsd:element name="int" type="xsd:integer" minOccurs="0" maxOccurs="unbounded"/>
++		</xsd:sequence>
++	</xsd:complexType>
++	<xsd:element name="CounterSignature" type="CounterSignatureType"/>
++	<xsd:complexType name="CounterSignatureType">
++		<xsd:sequence>
++			<xsd:element ref="ds:Signature"/>
++		</xsd:sequence>
++	</xsd:complexType>
++	<xsd:element name="DataObjectFormat" type="DataObjectFormatType"/>
++	<xsd:complexType name="DataObjectFormatType">
++		<xsd:sequence>
++			<xsd:element name="Description" type="xsd:string" minOccurs="0"/>
++			<xsd:element name="ObjectIdentifier" type="ObjectIdentifierType" minOccurs="0"/>
++			<xsd:element name="MimeType" type="xsd:string" minOccurs="0"/>
++			<xsd:element name="Encoding" type="xsd:anyURI" minOccurs="0"/>
++		</xsd:sequence>
++		<xsd:attribute name="ObjectReference" type="xsd:anyURI" use="required"/>
++	</xsd:complexType>
++	<xsd:element name="CommitmentTypeIndication" type="CommitmentTypeIndicationType"/>
++	<xsd:complexType name="CommitmentTypeIndicationType">
++		<xsd:sequence>
++			<xsd:element name="CommitmentTypeId" type="ObjectIdentifierType"/>
++			<xsd:choice>
++				<xsd:element name="ObjectReference" type="xsd:anyURI" minOccurs="0" maxOccurs="unbounded"/>
++				<xsd:element name="AllSignedDataObjects"/>
++			</xsd:choice>
++			<xsd:element name="CommitmentTypeQualifiers" type="CommitmentTypeQualifiersListType" minOccurs="0"/>
++		</xsd:sequence>
++	</xsd:complexType>
++	<xsd:complexType name="CommitmentTypeQualifiersListType">
++		<xsd:sequence>
++			<xsd:element name="CommitmentTypeQualifier" type="AnyType" minOccurs="0" maxOccurs="unbounded"/>
++		</xsd:sequence>
++	</xsd:complexType>
++	<xsd:element name="SignatureProductionPlace" type="SignatureProductionPlaceType"/>
++	<xsd:complexType name="SignatureProductionPlaceType">
++		<xsd:sequence>
++			<xsd:element name="City" type="xsd:string" minOccurs="0"/>
++			<xsd:element name="StateOrProvince" type="xsd:string" minOccurs="0"/>
++			<xsd:element name="PostalCode" type="xsd:string" minOccurs="0"/>
++			<xsd:element name="CountryName" type="xsd:string" minOccurs="0"/>
++		</xsd:sequence>
++	</xsd:complexType>
++	<xsd:element name="SignerRole" type="SignerRoleType"/>
++	<xsd:complexType name="SignerRoleType">
++		<xsd:sequence>
++			<xsd:element name="ClaimedRoles" type="ClaimedRolesListType" minOccurs="0"/>
++			<xsd:element name="CertifiedRoles" type="CertifiedRolesListType" minOccurs="0"/>
++		</xsd:sequence>
++	</xsd:complexType>
++	<xsd:complexType name="ClaimedRolesListType">
++		<xsd:sequence>
++			<xsd:element name="ClaimedRole" type="AnyType" maxOccurs="unbounded"/>
++		</xsd:sequence>
++	</xsd:complexType>
++	<xsd:complexType name="CertifiedRolesListType">
++		<xsd:sequence>
++			<xsd:element name="CertifiedRole" type="EncapsulatedPKIDataType" maxOccurs="unbounded"/>
++		</xsd:sequence>
++	</xsd:complexType>
++	<xsd:element name="AllDataObjectsTimeStamp" type="TimeStampType"/>
++	<xsd:element name="IndividualDataObjectsTimeStamp" type="TimeStampType"/>
++	<xsd:element name="SignatureTimeStamp" type="TimeStampType"/>
++	<xsd:element name="CompleteCertificateRefs" type="CompleteCertificateRefsType"/>
++	<xsd:complexType name="CompleteCertificateRefsType">
++		<xsd:sequence>
++			<xsd:element name="CertRefs" type="CertIDListType"/>
++		</xsd:sequence>
++		<xsd:attribute name="Id" type="xsd:ID" use="optional"/>
++	</xsd:complexType>
++	<xsd:element name="CompleteRevocationRefs" type="CompleteRevocationRefsType"/>
++	<xsd:complexType name="CompleteRevocationRefsType">
++		<xsd:sequence>
++			<xsd:element name="CRLRefs" type="CRLRefsType" minOccurs="0"/>
++			<xsd:element name="OCSPRefs" type="OCSPRefsType" minOccurs="0"/>
++			<xsd:element name="OtherRefs" type="OtherCertStatusRefsType" minOccurs="0"/>
++		</xsd:sequence>
++		<xsd:attribute name="Id" type="xsd:ID" use="optional"/>
++	</xsd:complexType>
++	<xsd:complexType name="CRLRefsType">
++		<xsd:sequence>
++			<xsd:element name="CRLRef" type="CRLRefType" maxOccurs="unbounded"/>
++		</xsd:sequence>
++	</xsd:complexType>
++	<xsd:complexType name="CRLRefType">
++		<xsd:sequence>
++			<xsd:element name="DigestAlgAndValue" type="DigestAlgAndValueType"/>
++			<xsd:element name="CRLIdentifier" type="CRLIdentifierType" minOccurs="0"/>
++		</xsd:sequence>
++	</xsd:complexType>
++	<xsd:complexType name="CRLIdentifierType">
++		<xsd:sequence>
++			<xsd:element name="Issuer" type="xsd:string"/>
++			<xsd:element name="IssueTime" type="xsd:dateTime"/>
++			<xsd:element name="Number" type="xsd:integer" minOccurs="0"/>
++		</xsd:sequence>
++		<xsd:attribute name="URI" type="xsd:anyURI" use="optional"/>
++	</xsd:complexType>
++	<xsd:complexType name="OCSPRefsType">
++		<xsd:sequence>
++			<xsd:element name="OCSPRef" type="OCSPRefType" maxOccurs="unbounded"/>
++		</xsd:sequence>
++	</xsd:complexType>
++	<xsd:complexType name="OCSPRefType">
++		<xsd:sequence>
++			<xsd:element name="OCSPIdentifier" type="OCSPIdentifierType"/>
++			<xsd:element name="DigestAlgAndValue" type="DigestAlgAndValueType" minOccurs="0"/>
++		</xsd:sequence>
++	</xsd:complexType>
++	<xsd:complexType name="OCSPIdentifierType">
++		<xsd:sequence>
++			<xsd:element name="ResponderID" type="xsd:string"/>
++			<xsd:element name="ProducedAt" type="xsd:dateTime"/>
++		</xsd:sequence>
++		<xsd:attribute name="URI" type="xsd:anyURI" use="optional"/>
++	</xsd:complexType>
++	<xsd:complexType name="OtherCertStatusRefsType">
++		<xsd:sequence>
++			<xsd:element name="OtherRef" type="AnyType" maxOccurs="unbounded"/>
++		</xsd:sequence>
++	</xsd:complexType>
++	<xsd:element name="SigAndRefsTimeStamp" type="TimeStampType"/>
++	<xsd:element name="RefsOnlyTimeStamp" type="TimeStampType"/>
++	<xsd:element name="CertificateValues" type="CertificateValuesType"/>
++	<xsd:complexType name="CertificateValuesType">
++		<xsd:choice minOccurs="0" maxOccurs="unbounded">
++			<xsd:element name="EncapsulatedX509Certificate" type="EncapsulatedPKIDataType"/>
++			<xsd:element name="OtherCertificate" type="AnyType"/>
++		</xsd:choice>
++		<xsd:attribute name="Id" type="xsd:ID" use="optional"/>
++	</xsd:complexType>
++	<xsd:element name="RevocationValues" type="RevocationValuesType"/>
++	<xsd:complexType name="RevocationValuesType">
++		<xsd:sequence>
++			<xsd:element name="CRLValues" type="CRLValuesType" minOccurs="0"/>
++			<xsd:element name="OCSPValues" type="OCSPValuesType" minOccurs="0"/>
++			<xsd:element name="OtherValues" type="OtherCertStatusValuesType" minOccurs="0"/>
++		</xsd:sequence>
++		<xsd:attribute name="Id" type="xsd:ID" use="optional"/>
++	</xsd:complexType>
++	<xsd:complexType name="CRLValuesType">
++		<xsd:sequence>
++			<xsd:element name="EncapsulatedCRLValue" type="EncapsulatedPKIDataType" maxOccurs="unbounded"/>
++		</xsd:sequence>
++	</xsd:complexType>
++	<xsd:complexType name="OCSPValuesType">
++		<xsd:sequence>
++			<xsd:element name="EncapsulatedOCSPValue" type="EncapsulatedPKIDataType" maxOccurs="unbounded"/>
++		</xsd:sequence>
++	</xsd:complexType>
++	<xsd:complexType name="OtherCertStatusValuesType">
++		<xsd:sequence>
++			<xsd:element name="OtherValue" type="AnyType" maxOccurs="unbounded"/>
++		</xsd:sequence>
++	</xsd:complexType>
++	<xsd:element name="ArchiveTimeStamp" type="TimeStampType"/>
++</xsd:schema>
+
+Property changes on: C:\java\opensource\xmlsec-1.4.2\resources\org\apache\xml\security\resource\schema\etsi.xsd
+___________________________________________________________________
+Added: svn:mergeinfo
+
+Index: resources/org/apache/xml/security/resource/schema/xmldsig-core-schema.dtd
+===================================================================
+--- resources/org/apache/xml/security/resource/schema/xmldsig-core-schema.dtd	(revision 0)
++++ resources/org/apache/xml/security/resource/schema/xmldsig-core-schema.dtd	(revision 34)
+@@ -0,0 +1,171 @@
++<!-- DTD for XML Signatures
++    http://www.w3.org/2000/09/xmldsig#
++    Joseph Reagle $last changed 20001215$
++
++    http://www.w3.org/2000/09/xmldsig#
++    $Revision: 1.1 $ on $Date: 2002/02/08 20:32:26 $ by $Author: reagle $
++
++    Copyright 2001 The Internet Society and W3C (Massachusetts Institute
++    of Technology, Institut National de Recherche en Informatique et en
++    Automatique, Keio University). All Rights Reserved.
++    http://www.w3.org/Consortium/Legal/
++
++    This document is governed by the W3C Software License [1] as described
++    in the FAQ [2].
++
++    [1] http://www.w3.org/Consortium/Legal/copyright-software-19980720
++    [2] http://www.w3.org/Consortium/Legal/IPR-FAQ-20000620.html#DTD
++-->
++
++
++<!--
++
++The following entity declarations enable external/flexible content in
++the Signature content model.
++
++#PCDATA emulates schema string; when combined with element types it
++emulates schema's mixed content type.
++
++%foo.ANY permits the user to include their own element types from
++other namespaces, for example:
++ <!ENTITY % KeyValue.ANY '| ecds:ECDSAKeyValue'>
++ ...
++ <!ELEMENT ecds:ECDSAKeyValue (#PCDATA)  >
++
++-->
++
++<!ENTITY % Object.ANY ''>
++<!ENTITY % Method.ANY ''>
++<!ENTITY % Transform.ANY ''>
++<!ENTITY % SignatureProperty.ANY ''>
++<!ENTITY % KeyInfo.ANY ''>
++<!ENTITY % KeyValue.ANY ''>
++<!ENTITY % PGPData.ANY ''>
++<!ENTITY % X509Data.ANY ''>
++<!ENTITY % SPKIData.ANY ''>
++
++
++
++<!-- Start Core Signature declarations, these should NOT be altered -->
++
++<!ELEMENT Signature (SignedInfo, SignatureValue, KeyInfo?, Object*)  >
++<!ATTLIST Signature  
++	xmlns	CDATA	#FIXED 'http://www.w3.org/2000/09/xmldsig#'
++	Id  	ID	#IMPLIED >
++
++<!ELEMENT SignatureValue (#PCDATA) >
++<!ATTLIST SignatureValue  
++         Id  ID      #IMPLIED>
++
++<!ELEMENT SignedInfo (CanonicalizationMethod, 
++	SignatureMethod,  Reference+)  >
++<!ATTLIST SignedInfo  
++	Id	 ID 	 #IMPLIED 
++>
++
++<!ELEMENT CanonicalizationMethod (#PCDATA %Method.ANY;)* > 
++<!ATTLIST CanonicalizationMethod 
++	Algorithm CDATA #REQUIRED > 
++
++<!ELEMENT SignatureMethod (#PCDATA|HMACOutputLength %Method.ANY;)* >
++<!ATTLIST SignatureMethod 
++	Algorithm CDATA #REQUIRED > 
++
++<!ELEMENT Reference (Transforms?, DigestMethod, DigestValue)  >
++<!ATTLIST Reference
++	Id	ID	#IMPLIED
++	URI	CDATA	#IMPLIED
++	Type	CDATA	#IMPLIED>
++
++
++<!ELEMENT Transforms (Transform+)>
++
++<!ELEMENT Transform (#PCDATA|XPath %Transform.ANY;)* >
++<!ATTLIST Transform 
++	Algorithm    CDATA    #REQUIRED >
++
++<!ELEMENT XPath (#PCDATA) >
++
++<!ELEMENT DigestMethod (#PCDATA %Method.ANY;)* >
++<!ATTLIST DigestMethod  
++	Algorithm		CDATA	#REQUIRED >
++
++<!ELEMENT DigestValue  (#PCDATA)  >
++
++<!ELEMENT KeyInfo	(#PCDATA|KeyName|KeyValue|RetrievalMethod|
++           X509Data|PGPData|SPKIData|MgmtData %KeyInfo.ANY;)* >
++<!ATTLIST KeyInfo
++	Id	ID	 #IMPLIED >
++
++<!-- Key Information -->
++
++<!ELEMENT KeyName (#PCDATA) >
++<!ELEMENT KeyValue (#PCDATA|DSAKeyValue|RSAKeyValue %KeyValue.ANY;)* >
++<!ELEMENT MgmtData (#PCDATA) >
++
++<!ELEMENT RetrievalMethod (Transforms?) >
++<!ATTLIST RetrievalMethod
++  URI	CDATA #REQUIRED 
++  Type	CDATA #IMPLIED > 
++
++<!-- X.509 Data -->
++
++<!ELEMENT X509Data ((X509IssuerSerial | X509SKI | X509SubjectName |
++                    X509Certificate | X509CRL )+ %X509Data.ANY;)>
++<!ELEMENT X509IssuerSerial (X509IssuerName, X509SerialNumber) >
++<!ELEMENT X509IssuerName (#PCDATA) >
++<!ELEMENT X509SubjectName (#PCDATA) >
++<!ELEMENT X509SerialNumber (#PCDATA) >
++<!ELEMENT X509SKI (#PCDATA) >
++<!ELEMENT X509Certificate (#PCDATA) >
++<!ELEMENT X509CRL (#PCDATA) >
++
++<!-- PGPData -->
++
++<!ELEMENT PGPData ((PGPKeyID, PGPKeyPacket?) | (PGPKeyPacket) %PGPData.ANY;) >
++<!ELEMENT PGPKeyPacket  (#PCDATA)  >
++<!ELEMENT PGPKeyID  (#PCDATA)  >
++
++<!-- SPKI Data -->
++
++<!ELEMENT SPKIData (SPKISexp %SPKIData.ANY;)  >
++<!ELEMENT SPKISexp  (#PCDATA)  >
++
++<!-- Extensible Content -->
++
++<!ELEMENT Object (#PCDATA|Signature|SignatureProperties|Manifest %Object.ANY;)* >
++<!ATTLIST Object  
++	Id	ID	#IMPLIED
++	MimeType	CDATA	#IMPLIED
++	Encoding	CDATA	#IMPLIED >
++
++<!ELEMENT Manifest (Reference+)  >
++<!ATTLIST Manifest  
++	Id	ID	#IMPLIED >
++
++<!ELEMENT SignatureProperties (SignatureProperty+)  >
++<!ATTLIST SignatureProperties  
++	Id	ID	 #IMPLIED  >
++
++<!ELEMENT SignatureProperty (#PCDATA %SignatureProperty.ANY;)* >
++<!ATTLIST SignatureProperty  
++	Target 	CDATA	 #REQUIRED
++	Id	ID	 #IMPLIED  >
++
++<!-- Algorithm Parameters -->
++
++<!ELEMENT HMACOutputLength (#PCDATA) >
++
++<!ELEMENT DSAKeyValue ((P, Q)?, G?, Y, J?, (Seed, PgenCounter)?) >
++<!ELEMENT P (#PCDATA) >
++<!ELEMENT Q (#PCDATA) >
++<!ELEMENT G (#PCDATA) >
++<!ELEMENT Y (#PCDATA) >
++<!ELEMENT J (#PCDATA) >
++<!ELEMENT Seed (#PCDATA) >
++<!ELEMENT PgenCounter (#PCDATA) >
++
++<!ELEMENT RSAKeyValue (Modulus, Exponent) > 
++<!ELEMENT Modulus (#PCDATA) >
++<!ELEMENT Exponent (#PCDATA) >
++
+
+Property changes on: C:\java\opensource\xmlsec-1.4.2\resources\org\apache\xml\security\resource\schema\xmldsig-core-schema.dtd
+___________________________________________________________________
+Added: svn:mergeinfo
+
+Index: resources/org/apache/xml/security/resource/schema/xenc-schema.xsd
+===================================================================
+--- resources/org/apache/xml/security/resource/schema/xenc-schema.xsd	(revision 0)
++++ resources/org/apache/xml/security/resource/schema/xenc-schema.xsd	(revision 34)
+@@ -0,0 +1,146 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!DOCTYPE schema  PUBLIC "-//W3C//DTD XMLSchema 200102//EN"
++ "http://www.w3.org/2001/XMLSchema.dtd"
++ [
++   <!ATTLIST schema
++     xmlns:xenc CDATA #FIXED 'http://www.w3.org/2001/04/xmlenc#'
++     xmlns:ds CDATA #FIXED 'http://www.w3.org/2000/09/xmldsig#'>
++   <!ENTITY xenc 'http://www.w3.org/2001/04/xmlenc#'>
++   <!ENTITY % p ''>
++   <!ENTITY % s ''>
++  ]>
++
++<schema xmlns='http://www.w3.org/2001/XMLSchema' version='1.0'
++        xmlns:xenc='http://www.w3.org/2001/04/xmlenc#'
++        xmlns:ds='http://www.w3.org/2000/09/xmldsig#'
++        targetNamespace='http://www.w3.org/2001/04/xmlenc#'
++        elementFormDefault='qualified'>
++
++  <import namespace='http://www.w3.org/2000/09/xmldsig#'
++          schemaLocation='http://www.w3.org/TR/2002/REC-xmldsig-core-20020212/xmldsig-core-schema.xsd'/>
++
++  <complexType name='EncryptedType' abstract='true'>
++    <sequence>
++      <element name='EncryptionMethod' type='xenc:EncryptionMethodType'
++       minOccurs='0'/>
++      <element ref='ds:KeyInfo' minOccurs='0'/>
++      <element ref='xenc:CipherData'/>
++      <element ref='xenc:EncryptionProperties' minOccurs='0'/>
++    </sequence>
++    <attribute name='Id' type='ID' use='optional'/>
++    <attribute name='Type' type='anyURI' use='optional'/>
++    <attribute name='MimeType' type='string' use='optional'/>
++    <attribute name='Encoding' type='anyURI' use='optional'/>
++  </complexType>
++  
++  <complexType name='EncryptionMethodType' mixed='true'>
++    <sequence>
++      <element name='KeySize' minOccurs='0' type='xenc:KeySizeType'/>
++      <element name='OAEPparams' minOccurs='0' type='base64Binary'/>
++      <any namespace='##other' minOccurs='0' maxOccurs='unbounded'/>
++    </sequence>
++    <attribute name='Algorithm' type='anyURI' use='required'/>
++  </complexType>
++
++    <simpleType name='KeySizeType'>
++      <restriction base="integer"/>
++    </simpleType>
++
++  <element name='CipherData' type='xenc:CipherDataType'/>
++  <complexType name='CipherDataType'>
++     <choice>
++       <element name='CipherValue' type='base64Binary'/>
++       <element ref='xenc:CipherReference'/>
++     </choice>
++    </complexType>
++
++   <element name='CipherReference' type='xenc:CipherReferenceType'/>
++   <complexType name='CipherReferenceType'>
++       <choice>
++         <element name='Transforms' type='xenc:TransformsType' minOccurs='0'/>
++       </choice>
++       <attribute name='URI' type='anyURI' use='required'/>
++   </complexType>
++
++     <complexType name='TransformsType'>
++       <sequence>
++         <element ref='ds:Transform' maxOccurs='unbounded'/>
++       </sequence>
++     </complexType>
++
++
++  <element name='EncryptedData' type='xenc:EncryptedDataType'/>
++  <complexType name='EncryptedDataType'>
++    <complexContent>
++      <extension base='xenc:EncryptedType'>
++       </extension>
++    </complexContent>
++  </complexType>
++
++  <!-- Children of ds:KeyInfo -->
++
++  <element name='EncryptedKey' type='xenc:EncryptedKeyType'/>
++  <complexType name='EncryptedKeyType'>
++    <complexContent>
++      <extension base='xenc:EncryptedType'>
++        <sequence>
++          <element ref='xenc:ReferenceList' minOccurs='0'/>
++          <element name='CarriedKeyName' type='string' minOccurs='0'/>
++        </sequence>
++        <attribute name='Recipient' type='string'
++         use='optional'/>
++      </extension>
++    </complexContent>
++  </complexType>
++
++    <element name="AgreementMethod" type="xenc:AgreementMethodType"/>
++    <complexType name="AgreementMethodType" mixed="true">
++      <sequence>
++        <element name="KA-Nonce" minOccurs="0" type="base64Binary"/>
++        <!-- <element ref="ds:DigestMethod" minOccurs="0"/> -->
++        <any namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
++        <element name="OriginatorKeyInfo" minOccurs="0" type="ds:KeyInfoType"/>
++        <element name="RecipientKeyInfo" minOccurs="0" type="ds:KeyInfoType"/>
++      </sequence>
++      <attribute name="Algorithm" type="anyURI" use="required"/>
++    </complexType>
++
++  <!-- End Children of ds:KeyInfo -->
++
++  <element name='ReferenceList'>
++    <complexType>
++      <choice minOccurs='1' maxOccurs='unbounded'>
++        <element name='DataReference' type='xenc:ReferenceType'/>
++        <element name='KeyReference' type='xenc:ReferenceType'/>
++      </choice>
++    </complexType>
++  </element>
++
++  <complexType name='ReferenceType'>
++    <sequence>
++      <any namespace='##other' minOccurs='0' maxOccurs='unbounded'/>
++    </sequence>
++    <attribute name='URI' type='anyURI' use='required'/>
++  </complexType>
++
++
++  <element name='EncryptionProperties' type='xenc:EncryptionPropertiesType'/>
++  <complexType name='EncryptionPropertiesType'>
++    <sequence>
++      <element ref='xenc:EncryptionProperty' maxOccurs='unbounded'/>
++    </sequence>
++    <attribute name='Id' type='ID' use='optional'/>
++  </complexType>
++
++    <element name='EncryptionProperty' type='xenc:EncryptionPropertyType'/>
++    <complexType name='EncryptionPropertyType' mixed='true'>
++      <choice maxOccurs='unbounded'>
++        <any namespace='##other' processContents='lax'/>
++      </choice>
++      <attribute name='Target' type='anyURI' use='optional'/>
++      <attribute name='Id' type='ID' use='optional'/>
++      <anyAttribute namespace="http://www.w3.org/XML/1998/namespace"/>
++    </complexType>
++
++</schema>
++
+
+Property changes on: C:\java\opensource\xmlsec-1.4.2\resources\org\apache\xml\security\resource\schema\xenc-schema.xsd
+___________________________________________________________________
+Added: svn:mergeinfo
+
+Index: resources/org/apache/xml/security/resource/schema/xmldsig-core-schema.xsd
+===================================================================
+--- resources/org/apache/xml/security/resource/schema/xmldsig-core-schema.xsd	(revision 0)
++++ resources/org/apache/xml/security/resource/schema/xmldsig-core-schema.xsd	(revision 34)
+@@ -0,0 +1,318 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!DOCTYPE schema
++  PUBLIC "-//W3C//DTD XMLSchema 200102//EN" "http://www.w3.org/2001/XMLSchema.dtd"
++ [
++   <!ATTLIST schema 
++     xmlns:ds CDATA #FIXED "http://www.w3.org/2000/09/xmldsig#">
++   <!ENTITY dsig 'http://www.w3.org/2000/09/xmldsig#'>
++   <!ENTITY % p ''>
++   <!ENTITY % s ''>
++  ]>
++
++<!-- Schema for XML Signatures
++    http://www.w3.org/2000/09/xmldsig#
++    $Revision: 1.1 $ on $Date: 2002/02/08 20:32:26 $ by $Author: reagle $
++
++    Copyright 2001 The Internet Society and W3C (Massachusetts Institute
++    of Technology, Institut National de Recherche en Informatique et en
++    Automatique, Keio University). All Rights Reserved.
++    http://www.w3.org/Consortium/Legal/
++
++    This document is governed by the W3C Software License [1] as described
++    in the FAQ [2].
++
++    [1] http://www.w3.org/Consortium/Legal/copyright-software-19980720
++    [2] http://www.w3.org/Consortium/Legal/IPR-FAQ-20000620.html#DTD
++-->
++
++
++<schema xmlns="http://www.w3.org/2001/XMLSchema"
++        xmlns:ds="http://www.w3.org/2000/09/xmldsig#"
++        targetNamespace="http://www.w3.org/2000/09/xmldsig#"
++        version="0.1" elementFormDefault="qualified"> 
++
++<!-- Basic Types Defined for Signatures -->
++
++<simpleType name="CryptoBinary">
++  <restriction base="base64Binary">
++  </restriction>
++</simpleType>
++
++<!-- Start Signature -->
++
++<element name="Signature" type="ds:SignatureType"/>
++<complexType name="SignatureType">
++  <sequence> 
++    <element ref="ds:SignedInfo"/> 
++    <element ref="ds:SignatureValue"/> 
++    <element ref="ds:KeyInfo" minOccurs="0"/> 
++    <element ref="ds:Object" minOccurs="0" maxOccurs="unbounded"/> 
++  </sequence>  
++  <attribute name="Id" type="ID" use="optional"/>
++</complexType>
++
++  <element name="SignatureValue" type="ds:SignatureValueType"/> 
++  <complexType name="SignatureValueType">
++    <simpleContent>
++      <extension base="base64Binary">
++        <attribute name="Id" type="ID" use="optional"/>
++      </extension>
++    </simpleContent>
++  </complexType>
++
++<!-- Start SignedInfo -->
++
++<element name="SignedInfo" type="ds:SignedInfoType"/>
++<complexType name="SignedInfoType">
++  <sequence> 
++    <element ref="ds:CanonicalizationMethod"/> 
++    <element ref="ds:SignatureMethod"/> 
++    <element ref="ds:Reference" maxOccurs="unbounded"/> 
++  </sequence>  
++  <attribute name="Id" type="ID" use="optional"/> 
++</complexType>
++
++  <element name="CanonicalizationMethod" type="ds:CanonicalizationMethodType"/> 
++  <complexType name="CanonicalizationMethodType" mixed="true">
++    <sequence>
++      <any namespace="##any" minOccurs="0" maxOccurs="unbounded"/>
++      <!-- (0,unbounded) elements from (1,1) namespace -->
++    </sequence>
++    <attribute name="Algorithm" type="anyURI" use="required"/> 
++  </complexType>
++
++  <element name="SignatureMethod" type="ds:SignatureMethodType"/>
++  <complexType name="SignatureMethodType" mixed="true">
++    <sequence>
++      <element name="HMACOutputLength" minOccurs="0" type="ds:HMACOutputLengthType"/>
++      <any namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
++      <!-- (0,unbounded) elements from (1,1) external namespace -->
++    </sequence>
++    <attribute name="Algorithm" type="anyURI" use="required"/> 
++  </complexType>
++
++<!-- Start Reference -->
++
++<element name="Reference" type="ds:ReferenceType"/>
++<complexType name="ReferenceType">
++  <sequence> 
++    <element ref="ds:Transforms" minOccurs="0"/> 
++    <element ref="ds:DigestMethod"/> 
++    <element ref="ds:DigestValue"/> 
++  </sequence>
++  <attribute name="Id" type="ID" use="optional"/> 
++  <attribute name="URI" type="anyURI" use="optional"/> 
++  <attribute name="Type" type="anyURI" use="optional"/> 
++</complexType>
++
++  <element name="Transforms" type="ds:TransformsType"/>
++  <complexType name="TransformsType">
++    <sequence>
++      <element ref="ds:Transform" maxOccurs="unbounded"/>  
++    </sequence>
++  </complexType>
++
++  <element name="Transform" type="ds:TransformType"/>
++  <complexType name="TransformType" mixed="true">
++    <choice minOccurs="0" maxOccurs="unbounded"> 
++      <any namespace="##other" processContents="lax"/>
++      <!-- (1,1) elements from (0,unbounded) namespaces -->
++      <element name="XPath" type="string"/> 
++    </choice>
++    <attribute name="Algorithm" type="anyURI" use="required"/> 
++  </complexType>
++
++<!-- End Reference -->
++
++<element name="DigestMethod" type="ds:DigestMethodType"/>
++<complexType name="DigestMethodType" mixed="true"> 
++  <sequence>
++    <any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
++  </sequence>    
++  <attribute name="Algorithm" type="anyURI" use="required"/> 
++</complexType>
++
++<element name="DigestValue" type="ds:DigestValueType"/>
++<simpleType name="DigestValueType">
++  <restriction base="base64Binary"/>
++</simpleType>
++
++<!-- End SignedInfo -->
++
++<!-- Start KeyInfo -->
++
++<element name="KeyInfo" type="ds:KeyInfoType"/> 
++<complexType name="KeyInfoType" mixed="true">
++  <choice maxOccurs="unbounded">     
++    <element ref="ds:KeyName"/> 
++    <element ref="ds:KeyValue"/> 
++    <element ref="ds:RetrievalMethod"/> 
++    <element ref="ds:X509Data"/> 
++    <element ref="ds:PGPData"/> 
++    <element ref="ds:SPKIData"/>
++    <element ref="ds:MgmtData"/>
++    <any processContents="lax" namespace="##other"/>
++    <!-- (1,1) elements from (0,unbounded) namespaces -->
++  </choice>
++  <attribute name="Id" type="ID" use="optional"/> 
++</complexType>
++
++  <element name="KeyName" type="string"/>
++  <element name="MgmtData" type="string"/>
++
++  <element name="KeyValue" type="ds:KeyValueType"/> 
++  <complexType name="KeyValueType" mixed="true">
++   <choice>
++     <element ref="ds:DSAKeyValue"/>
++     <element ref="ds:RSAKeyValue"/>
++     <any namespace="##other" processContents="lax"/>
++   </choice>
++  </complexType>
++
++  <element name="RetrievalMethod" type="ds:RetrievalMethodType"/> 
++  <complexType name="RetrievalMethodType">
++    <sequence>
++      <element ref="ds:Transforms" minOccurs="0"/> 
++    </sequence>  
++    <attribute name="URI" type="anyURI"/>
++    <attribute name="Type" type="anyURI" use="optional"/>
++  </complexType>
++
++<!-- Start X509Data -->
++
++<element name="X509Data" type="ds:X509DataType"/> 
++<complexType name="X509DataType">
++  <sequence maxOccurs="unbounded">
++    <choice>
++      <element name="X509IssuerSerial" type="ds:X509IssuerSerialType"/>
++      <element name="X509SKI" type="base64Binary"/>
++      <element name="X509SubjectName" type="string"/>
++      <element name="X509Certificate" type="base64Binary"/>
++      <element name="X509CRL" type="base64Binary"/>
++      <any namespace="##other" processContents="lax"/>
++    </choice>
++  </sequence>
++</complexType>
++
++<complexType name="X509IssuerSerialType"> 
++  <sequence> 
++    <element name="X509IssuerName" type="string"/> 
++    <element name="X509SerialNumber" type="integer"/> 
++  </sequence>
++</complexType>
++
++<!-- End X509Data -->
++
++<!-- Begin PGPData -->
++
++<element name="PGPData" type="ds:PGPDataType"/> 
++<complexType name="PGPDataType"> 
++  <choice>
++    <sequence>
++      <element name="PGPKeyID" type="base64Binary"/> 
++      <element name="PGPKeyPacket" type="base64Binary" minOccurs="0"/> 
++      <any namespace="##other" processContents="lax" minOccurs="0"
++       maxOccurs="unbounded"/>
++    </sequence>
++    <sequence>
++      <element name="PGPKeyPacket" type="base64Binary"/> 
++      <any namespace="##other" processContents="lax" minOccurs="0"
++       maxOccurs="unbounded"/>
++    </sequence>
++  </choice>
++</complexType>
++
++<!-- End PGPData -->
++
++<!-- Begin SPKIData -->
++
++<element name="SPKIData" type="ds:SPKIDataType"/> 
++<complexType name="SPKIDataType">
++  <sequence maxOccurs="unbounded">
++    <element name="SPKISexp" type="base64Binary"/>
++    <any namespace="##other" processContents="lax" minOccurs="0"/>
++  </sequence>
++</complexType> 
++
++<!-- End SPKIData -->
++
++<!-- End KeyInfo -->
++
++<!-- Start Object (Manifest, SignatureProperty) -->
++
++<element name="Object" type="ds:ObjectType"/> 
++<complexType name="ObjectType" mixed="true">
++  <sequence minOccurs="0" maxOccurs="unbounded">
++    <any namespace="##any" processContents="lax"/>
++  </sequence>
++  <attribute name="Id" type="ID" use="optional"/> 
++  <attribute name="MimeType" type="string" use="optional"/> <!-- add a grep facet -->
++  <attribute name="Encoding" type="anyURI" use="optional"/> 
++</complexType>
++
++<element name="Manifest" type="ds:ManifestType"/> 
++<complexType name="ManifestType">
++  <sequence>
++    <element ref="ds:Reference" maxOccurs="unbounded"/> 
++  </sequence>
++  <attribute name="Id" type="ID" use="optional"/> 
++</complexType>
++
++<element name="SignatureProperties" type="ds:SignaturePropertiesType"/> 
++<complexType name="SignaturePropertiesType">
++  <sequence>
++    <element ref="ds:SignatureProperty" maxOccurs="unbounded"/> 
++  </sequence>
++  <attribute name="Id" type="ID" use="optional"/> 
++</complexType>
++
++   <element name="SignatureProperty" type="ds:SignaturePropertyType"/> 
++   <complexType name="SignaturePropertyType" mixed="true">
++     <choice maxOccurs="unbounded">
++       <any namespace="##other" processContents="lax"/>
++       <!-- (1,1) elements from (1,unbounded) namespaces -->
++     </choice>
++     <attribute name="Target" type="anyURI" use="required"/> 
++     <attribute name="Id" type="ID" use="optional"/> 
++   </complexType>
++
++<!-- End Object (Manifest, SignatureProperty) -->
++
++<!-- Start Algorithm Parameters -->
++
++<simpleType name="HMACOutputLengthType">
++  <restriction base="integer"/>
++</simpleType>
++
++<!-- Start KeyValue Element-types -->
++
++<element name="DSAKeyValue" type="ds:DSAKeyValueType"/>
++<complexType name="DSAKeyValueType">
++  <sequence>
++    <sequence minOccurs="0">
++      <element name="P" type="ds:CryptoBinary"/>
++      <element name="Q" type="ds:CryptoBinary"/>
++    </sequence>
++    <element name="G" type="ds:CryptoBinary" minOccurs="0"/>
++    <element name="Y" type="ds:CryptoBinary"/>
++    <element name="J" type="ds:CryptoBinary" minOccurs="0"/>
++    <sequence minOccurs="0">
++      <element name="Seed" type="ds:CryptoBinary"/>
++      <element name="PgenCounter" type="ds:CryptoBinary"/>
++    </sequence>
++  </sequence>
++</complexType>
++
++<element name="RSAKeyValue" type="ds:RSAKeyValueType"/>
++<complexType name="RSAKeyValueType">
++  <sequence>
++    <element name="Modulus" type="ds:CryptoBinary"/> 
++    <element name="Exponent" type="ds:CryptoBinary"/> 
++  </sequence>
++</complexType> 
++
++<!-- End KeyValue Element-types -->
++
++<!-- End Signature -->
++
++</schema>
+
+Property changes on: C:\java\opensource\xmlsec-1.4.2\resources\org\apache\xml\security\resource\schema\xmldsig-core-schema.xsd
+___________________________________________________________________
+Added: svn:mergeinfo
+
+Index: resources/org/apache/xml/security/resource/config.xml
+===================================================================
+--- resources/org/apache/xml/security/resource/config.xml	(revision 0)
++++ resources/org/apache/xml/security/resource/config.xml	(revision 34)
+@@ -0,0 +1,404 @@
++<?xml version="1.0"?>
++<!--
++<!DOCTYPE Configuration SYSTEM "config.dtd">
++-->
++<!-- This configuration file is used for configuration of the org.apache.xml.security package -->
++<Configuration target="org.apache.xml.security" xmlns="http://www.xmlsecurity.org/NS/#configuration">
++   <CanonicalizationMethods>
++      <CanonicalizationMethod URI="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"
++                              JAVACLASS="org.apache.xml.security.c14n.implementations.Canonicalizer20010315OmitComments" />
++      <CanonicalizationMethod URI="http://www.w3.org/TR/2001/REC-xml-c14n-20010315#WithComments"
++                              JAVACLASS="org.apache.xml.security.c14n.implementations.Canonicalizer20010315WithComments" />
++
++      <CanonicalizationMethod URI="http://www.w3.org/2001/10/xml-exc-c14n#"
++                              JAVACLASS="org.apache.xml.security.c14n.implementations.Canonicalizer20010315ExclOmitComments"/>
++      <CanonicalizationMethod URI="http://www.w3.org/2001/10/xml-exc-c14n#WithComments"
++                              JAVACLASS="org.apache.xml.security.c14n.implementations.Canonicalizer20010315ExclWithComments"/>
++      <CanonicalizationMethod URI="http://www.w3.org/2006/12/xml-c14n11"
++                              JAVACLASS="org.apache.xml.security.c14n.implementations.Canonicalizer11_OmitComments"/>
++      <CanonicalizationMethod URI="http://www.w3.org/2006/12/xml-c14n11#WithComments"
++                              JAVACLASS="org.apache.xml.security.c14n.implementations.Canonicalizer11_WithComments"/>
++   </CanonicalizationMethods>
++   <TransformAlgorithms>
++      <!-- Base64 -->
++      <TransformAlgorithm URI="http://www.w3.org/2000/09/xmldsig#base64"
++                          JAVACLASS="org.apache.xml.security.transforms.implementations.TransformBase64Decode" />
++      <!-- c14n omitting comments -->
++      <TransformAlgorithm URI="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"
++                          JAVACLASS="org.apache.xml.security.transforms.implementations.TransformC14N" />
++      <!-- c14n with comments -->
++      <TransformAlgorithm URI="http://www.w3.org/TR/2001/REC-xml-c14n-20010315#WithComments"
++                          JAVACLASS="org.apache.xml.security.transforms.implementations.TransformC14NWithComments" />
++      <!-- c14n 1.1 omitting comments -->
++      <TransformAlgorithm URI="http://www.w3.org/2006/12/xml-c14n11"
++                          JAVACLASS="org.apache.xml.security.transforms.implementations.TransformC14N11" />
++      <!-- c14n 1.1 with comments -->
++      <TransformAlgorithm URI="http://www.w3.org/2006/12/xml-c14n11#WithComments"
++                          JAVACLASS="org.apache.xml.security.transforms.implementations.TransformC14N11_WithComments" />
++      <!-- exclusive c14n omitting comments -->
++      <TransformAlgorithm URI="http://www.w3.org/2001/10/xml-exc-c14n#"
++                          JAVACLASS="org.apache.xml.security.transforms.implementations.TransformC14NExclusive" />
++      <!-- exclusive c14n with comments -->
++      <TransformAlgorithm URI="http://www.w3.org/2001/10/xml-exc-c14n#WithComments"
++                          JAVACLASS="org.apache.xml.security.transforms.implementations.TransformC14NExclusiveWithComments" />
++
++      <!-- XPath transform -->
++      <TransformAlgorithm URI="http://www.w3.org/TR/1999/REC-xpath-19991116"
++                          JAVACLASS="org.apache.xml.security.transforms.implementations.TransformXPath" />
++      <!-- enveloped signature -->
++      <TransformAlgorithm URI="http://www.w3.org/2000/09/xmldsig#enveloped-signature"
++                          JAVACLASS="org.apache.xml.security.transforms.implementations.TransformEnvelopedSignature" />
++      <!-- XSLT -->
++      <TransformAlgorithm URI="http://www.w3.org/TR/1999/REC-xslt-19991116"
++                          JAVACLASS="org.apache.xml.security.transforms.implementations.TransformXSLT" />
++      <!-- XPath version 2 -->
++      <TransformAlgorithm URI="http://www.w3.org/2002/04/xmldsig-filter2"
++                          JAVACLASS="org.apache.xml.security.transforms.implementations.TransformXPath2Filter" />
++      <!-- XPath version 2b -->
++      <TransformAlgorithm URI="http://www.w3.org/2002/06/xmldsig-filter2"
++                          JAVACLASS="org.apache.xml.security.transforms.implementations.TransformXPath2Filter" />
++   </TransformAlgorithms>
++   <SignatureAlgorithms>
++      <SignatureAlgorithm URI="http://www.w3.org/2000/09/xmldsig#dsa-sha1"
++                          JAVACLASS="org.apache.xml.security.algorithms.implementations.SignatureDSA" />
++      <SignatureAlgorithm URI="http://www.w3.org/2000/09/xmldsig#rsa-sha1"
++                          JAVACLASS="org.apache.xml.security.algorithms.implementations.SignatureBaseRSA$SignatureRSASHA1" />
++      <SignatureAlgorithm URI="http://www.w3.org/2000/09/xmldsig#hmac-sha1"
++                          JAVACLASS="org.apache.xml.security.algorithms.implementations.IntegrityHmac$IntegrityHmacSHA1" />
++
++      <SignatureAlgorithm URI="http://www.w3.org/2001/04/xmldsig-more#rsa-md5"
++                          JAVACLASS="org.apache.xml.security.algorithms.implementations.SignatureBaseRSA$SignatureRSAMD5" />
++      <SignatureAlgorithm URI="http://www.w3.org/2001/04/xmldsig-more#rsa-ripemd160"
++                          JAVACLASS="org.apache.xml.security.algorithms.implementations.SignatureBaseRSA$SignatureRSARIPEMD160" />
++      <SignatureAlgorithm URI="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
++                          JAVACLASS="org.apache.xml.security.algorithms.implementations.SignatureBaseRSA$SignatureRSASHA256" />
++      <SignatureAlgorithm URI="http://www.w3.org/2001/04/xmldsig-more#rsa-sha384"
++                          JAVACLASS="org.apache.xml.security.algorithms.implementations.SignatureBaseRSA$SignatureRSASHA384" />
++      <SignatureAlgorithm URI="http://www.w3.org/2001/04/xmldsig-more#rsa-sha512"
++                          JAVACLASS="org.apache.xml.security.algorithms.implementations.SignatureBaseRSA$SignatureRSASHA512" />
++      <SignatureAlgorithm URI="http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha1"
++                          JAVACLASS="org.apache.xml.security.algorithms.implementations.SignatureECDSA$SignatureECDSASHA1" />
++
++      <SignatureAlgorithm URI="http://www.w3.org/2001/04/xmldsig-more#hmac-md5"
++                          JAVACLASS="org.apache.xml.security.algorithms.implementations.IntegrityHmac$IntegrityHmacMD5" />
++      <SignatureAlgorithm URI="http://www.w3.org/2001/04/xmldsig-more#hmac-ripemd160"
++                          JAVACLASS="org.apache.xml.security.algorithms.implementations.IntegrityHmac$IntegrityHmacRIPEMD160" />
++      <SignatureAlgorithm URI="http://www.w3.org/2001/04/xmldsig-more#hmac-sha256"
++                          JAVACLASS="org.apache.xml.security.algorithms.implementations.IntegrityHmac$IntegrityHmacSHA256" />
++      <SignatureAlgorithm URI="http://www.w3.org/2001/04/xmldsig-more#hmac-sha384"
++                          JAVACLASS="org.apache.xml.security.algorithms.implementations.IntegrityHmac$IntegrityHmacSHA384" />
++      <SignatureAlgorithm URI="http://www.w3.org/2001/04/xmldsig-more#hmac-sha512"
++                          JAVACLASS="org.apache.xml.security.algorithms.implementations.IntegrityHmac$IntegrityHmacSHA512" />
++   </SignatureAlgorithms>
++   <JCEAlgorithmMappings>
++      <Algorithms>
++         <!-- MessageDigest Algorithms -->
++         <Algorithm URI="http://www.w3.org/2001/04/xmldsig-more#md5"
++                    Description="MD5 message digest from RFC 1321"
++                    AlgorithmClass="MessageDigest"
++                    RequirementLevel="NOT RECOMMENDED"
++                    SpecificationURL="http://www.ietf.org/internet-drafts/draft-eastlake-xmldsig-uri-02.txt"
++                    JCEName="MD5"/>
++
++         <Algorithm URI="http://www.w3.org/2001/04/xmlenc#ripemd160"
++                    Description="RIPEMD-160 message digest"
++                    AlgorithmClass="MessageDigest"
++                    RequirementLevel="OPTIONAL"
++                    JCEName="RIPEMD160"/>
++
++         <Algorithm URI="http://www.w3.org/2000/09/xmldsig#sha1"
++                    Description="SHA-1 message digest"
++                    AlgorithmClass="MessageDigest"
++                    RequirementLevel="REQUIRED"
++                    JCEName="SHA-1"/>
++
++         <Algorithm URI="http://www.w3.org/2001/04/xmlenc#sha256"
++                    Description="SHA-1 message digest with 256 bit"
++                    AlgorithmClass="MessageDigest"
++                    RequirementLevel="RECOMMENDED"
++                    JCEName="SHA-256"/>
++
++         <Algorithm URI="http://www.w3.org/2001/04/xmldsig-more#sha384"
++                    Description="SHA message digest with 384 bit"
++                    AlgorithmClass="MessageDigest"
++                    RequirementLevel="OPTIONAL"
++                    SpecificationURL="http://www.ietf.org/internet-drafts/draft-eastlake-xmldsig-uri-02.txt"
++                    JCEName="SHA-384"/>
++
++         <Algorithm URI="http://www.w3.org/2001/04/xmlenc#sha512"
++                    Description="SHA-1 message digest with 512 bit"
++                    AlgorithmClass="MessageDigest"
++                    RequirementLevel="OPTIONAL"
++                    JCEName="SHA-512"/>
++
++         <!-- Signature Algorithms -->
++         <Algorithm URI="http://www.w3.org/2000/09/xmldsig#dsa-sha1"
++                    Description="Digital Signature Algorithm with SHA-1 message digest"
++                    AlgorithmClass="Signature"
++                    RequirementLevel="REQUIRED"
++                    JCEName="SHA1withDSA"/>
++
++         <Algorithm URI="http://www.w3.org/2001/04/xmldsig-more#rsa-md5"
++                    Description="RSA Signature with MD5 message digest"
++                    AlgorithmClass="Signature"
++                    RequirementLevel="NOT RECOMMENDED"
++                    SpecificationURL="http://www.ietf.org/internet-drafts/draft-eastlake-xmldsig-uri-02.txt"
++                    JCEName="MD5withRSA"/>
++
++         <Algorithm URI="http://www.w3.org/2001/04/xmldsig-more#rsa-ripemd160"
++                    Description="RSA Signature with RIPEMD-160 message digest"
++                    AlgorithmClass="Signature"
++                    RequirementLevel="OPTIONAL"
++                    SpecificationURL="http://www.ietf.org/internet-drafts/draft-eastlake-xmldsig-uri-02.txt"
++                    JCEName="RIPEMD160withRSA"/>
++
++         <Algorithm URI="http://www.w3.org/2000/09/xmldsig#rsa-sha1"
++                    Description="RSA Signature with SHA-1 message digest"
++                    AlgorithmClass="Signature"
++                    RequirementLevel="RECOMMENDED"
++                    JCEName="SHA1withRSA"/>
++
++         <Algorithm URI="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
++                    Description="RSA Signature with SHA-256 message digest"
++                    AlgorithmClass="Signature"
++                    RequirementLevel="OPTIONAL"
++                    SpecificationURL="http://www.ietf.org/internet-drafts/draft-eastlake-xmldsig-uri-02.txt"
++                    JCEName="SHA256withRSA"/>
++
++         <Algorithm URI="http://www.w3.org/2001/04/xmldsig-more#rsa-sha384"
++                    Description="RSA Signature with SHA-384 message digest"
++                    AlgorithmClass="Signature"
++                    RequirementLevel="OPTIONAL"
++                    SpecificationURL="http://www.ietf.org/internet-drafts/draft-eastlake-xmldsig-uri-02.txt"
++                    JCEName="SHA384withRSA"/>
++
++         <Algorithm URI="http://www.w3.org/2001/04/xmldsig-more#rsa-sha512"
++                    Description="RSA Signature with SHA-512 message digest"
++                    AlgorithmClass="Signature"
++                    RequirementLevel="OPTIONAL"
++                    SpecificationURL="http://www.ietf.org/internet-drafts/draft-eastlake-xmldsig-uri-02.txt"
++                    JCEName="SHA512withRSA"/>
++                    
++         <Algorithm URI="http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha1"
++                    Description="ECDSA Signature with SHA-1 message digest"
++                    AlgorithmClass="Signature"
++                    RequirementLevel="OPTIONAL"
++                    SpecificationURL="http://www.ietf.org/internet-drafts/draft-eastlake-xmldsig-uri-02.txt"
++                    JCEName="ECDSAwithSHA1"/>
++
++         <!-- MAC Algorithms -->
++         <Algorithm URI="http://www.w3.org/2001/04/xmldsig-more#hmac-md5"
++                    Description="Message Authentication code using MD5"
++                    AlgorithmClass="Mac"
++                    RequirementLevel="NOT RECOMMENDED"
++                    SpecificationURL="http://www.ietf.org/internet-drafts/draft-eastlake-xmldsig-uri-02.txt"
++                    JCEName="HmacMD5"/>
++
++         <Algorithm URI="http://www.w3.org/2001/04/xmldsig-more#hmac-ripemd160"
++                    Description="Message Authentication code using RIPEMD-160"
++                    AlgorithmClass="Mac"
++                    RequirementLevel="OPTIONAL"
++                    SpecificationURL="http://www.ietf.org/internet-drafts/draft-eastlake-xmldsig-uri-02.txt"
++                    JCEName="HMACRIPEMD160"/>
++
++         <Algorithm URI="http://www.w3.org/2000/09/xmldsig#hmac-sha1"
++                    Description="Message Authentication code using SHA1"
++                    AlgorithmClass="Mac"
++                    RequirementLevel="REQUIRED"
++                    JCEName="HmacSHA1"/>
++
++         <Algorithm URI="http://www.w3.org/2001/04/xmldsig-more#hmac-sha256"
++                    Description="Message Authentication code using SHA-256"
++                    AlgorithmClass="Mac"
++                    RequirementLevel="OPTIONAL"
++                    SpecificationURL="http://www.ietf.org/internet-drafts/draft-eastlake-xmldsig-uri-02.txt"
++                    JCEName="HmacSHA256"/>
++
++         <Algorithm URI="http://www.w3.org/2001/04/xmldsig-more#hmac-sha384"
++                    Description="Message Authentication code using SHA-384"
++                    AlgorithmClass="Mac"
++                    RequirementLevel="OPTIONAL"
++                    SpecificationURL="http://www.ietf.org/internet-drafts/draft-eastlake-xmldsig-uri-02.txt"
++                    JCEName="HmacSHA384"/>
++
++         <Algorithm URI="http://www.w3.org/2001/04/xmldsig-more#hmac-sha512"
++                    Description="Message Authentication code using SHA-512"
++                    AlgorithmClass="Mac"
++                    RequirementLevel="OPTIONAL"
++                    SpecificationURL="http://www.ietf.org/internet-drafts/draft-eastlake-xmldsig-uri-02.txt"
++                    JCEName="HmacSHA512"/>
++
++         <!-- Block encryption Algorithms -->
++         <Algorithm URI="http://www.w3.org/2001/04/xmlenc#tripledes-cbc"
++                    Description="Block encryption using Triple-DES"
++                    AlgorithmClass="BlockEncryption"
++                    RequirementLevel="REQUIRED"
++                    KeyLength="192"
++                    RequiredKey="DESede"
++                    JCEName="DESede/CBC/ISO10126Padding"/>
++
++         <Algorithm URI="http://www.w3.org/2001/04/xmlenc#aes128-cbc"
++                    Description="Block encryption using AES with a key length of 128 bit"
++                    AlgorithmClass="BlockEncryption"
++                    RequirementLevel="REQUIRED"
++                    KeyLength="128"
++                    RequiredKey="AES"
++                    JCEName="AES/CBC/ISO10126Padding"/>
++
++         <Algorithm URI="http://www.w3.org/2001/04/xmlenc#aes192-cbc"
++                    Description="Block encryption using AES with a key length of 192 bit"
++                    AlgorithmClass="BlockEncryption"
++                    RequirementLevel="OPTIONAL"
++                    KeyLength="192"
++                    RequiredKey="AES"
++                    JCEName="AES/CBC/ISO10126Padding"/>
++
++         <Algorithm URI="http://www.w3.org/2001/04/xmlenc#aes256-cbc"
++                    Description="Block encryption using AES with a key length of 256 bit"
++                    AlgorithmClass="BlockEncryption"
++                    RequirementLevel="REQUIRED"
++                    KeyLength="256"
++                    RequiredKey="AES"
++                    JCEName="AES/CBC/ISO10126Padding"/>
++
++         <Algorithm URI="http://www.w3.org/2001/04/xmlenc#rsa-1_5"
++                    Description="Key Transport RSA-v1.5"
++                    AlgorithmClass="KeyTransport"
++                    RequirementLevel="REQUIRED"
++                    RequiredKey="RSA"
++                    JCEName="RSA/ECB/PKCS1Padding"/>
++
++         <Algorithm URI="http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p"
++                    Description="Key Transport RSA-OAEP"
++                    AlgorithmClass="KeyTransport"
++                    RequirementLevel="REQUIRED"
++                    RequiredKey="RSA"
++                    JCEName="RSA/ECB/OAEPWithSHA1AndMGF1Padding"/>
++
++         <Algorithm URI="http://www.w3.org/2001/04/xmlenc#dh"
++                    Description="Key Agreement Diffie-Hellman"
++                    AlgorithmClass="KeyAgreement"
++                    RequirementLevel="OPTIONAL"/>
++
++         <Algorithm URI="http://www.w3.org/2001/04/xmlenc#kw-tripledes"
++                    Description="Symmetric Key Wrap using Triple DES"
++                    AlgorithmClass="SymmetricKeyWrap"
++                    RequirementLevel="REQUIRED"
++                    KeyLength="192"
++                    RequiredKey="DESede"
++                    JCEName="DESedeWrap"/>
++
++         <Algorithm URI="http://www.w3.org/2001/04/xmlenc#kw-aes128"
++                    Description="Symmetric Key Wrap using AES with a key length of 128 bit"
++                    AlgorithmClass="SymmetricKeyWrap"
++                    RequirementLevel="REQUIRED"
++                    KeyLength="128"
++                    RequiredKey="AES"
++                    JCEName="AESWrap"/>
++
++         <Algorithm URI="http://www.w3.org/2001/04/xmlenc#kw-aes192"
++                    Description="Symmetric Key Wrap using AES with a key length of 192 bit"
++                    AlgorithmClass="SymmetricKeyWrap"
++                    RequirementLevel="OPTIONAL"
++                    KeyLength="192"
++                    RequiredKey="AES"
++                    JCEName="AESWrap"/>
++
++         <Algorithm URI="http://www.w3.org/2001/04/xmlenc#kw-aes256"
++                    Description="Symmetric Key Wrap using AES with a key length of 256 bit"
++                    AlgorithmClass="SymmetricKeyWrap"
++                    RequirementLevel="REQUIRED"
++                    KeyLength="256"
++                    RequiredKey="AES"
++                    JCEName="AESWrap"/>
++
++      </Algorithms>
++   </JCEAlgorithmMappings>
++   <ResourceBundles defaultLanguageCode="es" defaultCountryCode="ES">
++      <ResourceBundle LanguageCode="en"
++                      CountryCode="US"
++                      LOCATION="org.apache.xml.security/resource/xmlsecurity_en.properties" />
++      <ResourceBundle LanguageCode="de"
++                      CountryCode="DE"
++                      LOCATION="org.apache.xml.security/resource/xmlsecurity_de.properties" />
++      <ResourceBundle LanguageCode="es"
++                      CountryCode="ES"
++                      LOCATION="org.apache.xml.security/resource/xmlsecurity_es.properties" />
++   </ResourceBundles>
++   <ResourceResolvers>
++      <Resolver JAVACLASS="org.apache.xml.security.utils.resolver.implementations.ResolverDirectHTTP"
++                DESCRIPTION="A simple resolver for requests to HTTP space" />
++      <Resolver JAVACLASS="org.apache.xml.security.utils.resolver.implementations.ResolverBigLocalFilesystem"
++                DESCRIPTION="A simple resolver for requests to the local file system with big files" />
++      <!-- <Resolver JAVACLASS="org.apache.xml.security.utils.resolver.implementations.ResolverLocalFilesystem"
++                DESCRIPTION="A simple resolver for requests to the local file system" /> -->
++      <Resolver JAVACLASS="org.apache.xml.security.utils.resolver.implementations.ResolverFragment"
++                DESCRIPTION="A simple resolver for requests of same-document URIs" />
++      <Resolver JAVACLASS="org.apache.xml.security.utils.resolver.implementations.ResolverXPointer"
++                DESCRIPTION="A simple resolver for requests of XPointer fragents" />
++   </ResourceResolvers>
++   <!-- <defaultLocale languageCode="en" countryCode="US" /> -->
++   <KeyInfo>
++      <ContentHandler LOCALNAME="KeyName"
++                      NAMESPACE="http://www.w3.org/2000/09/xmldsig#"
++                      JAVACLASS="org.apache.xml.security.keys.content.KeyName" />
++      <ContentHandler LOCALNAME="KeyValue"
++                      NAMESPACE="http://www.w3.org/2000/09/xmldsig#"
++                      JAVACLASS="org.apache.xml.security.keys.content.KeyValue" />
++      <ContentHandler LOCALNAME="RetrievalMethod"
++                      NAMESPACE="http://www.w3.org/2000/09/xmldsig#"
++                      JAVACLASS="org.apache.xml.security.keys.content.RetrievalMethod" />
++      <ContentHandler LOCALNAME="X509Data"
++                      NAMESPACE="http://www.w3.org/2000/09/xmldsig#"
++                      JAVACLASS="org.apache.xml.security.keys.content.X509Data" />
++      <ContentHandler LOCALNAME="PGPData"
++                      NAMESPACE="http://www.w3.org/2000/09/xmldsig#"
++                      JAVACLASS="org.apache.xml.security.keys.content.PGPData" />
++      <ContentHandler LOCALNAME="SPKIData"
++                      NAMESPACE="http://www.w3.org/2000/09/xmldsig#"
++                      JAVACLASS="org.apache.xml.security.keys.content.SPKIData" />
++      <ContentHandler LOCALNAME="MgmtData"
++                      NAMESPACE="http://www.w3.org/2000/09/xmldsig#"
++                      JAVACLASS="org.apache.xml.security.keys.content.MgmtData" />
++   </KeyInfo>
++   <KeyResolver>
++      <!-- This section contains a list of KeyResolvers that are available in
++           every KeyInfo object -->
++      <Resolver JAVACLASS="org.apache.xml.security.keys.keyresolver.implementations.RSAKeyValueResolver"
++                DESCRIPTION="Can extract RSA public keys" />
++      <Resolver JAVACLASS="org.apache.xml.security.keys.keyresolver.implementations.DSAKeyValueResolver"
++                DESCRIPTION="Can extract DSA public keys" />
++      <Resolver JAVACLASS="org.apache.xml.security.keys.keyresolver.implementations.X509CertificateResolver"
++                DESCRIPTION="Can extract public keys from X509 certificates" />
++      <Resolver JAVACLASS="org.apache.xml.security.keys.keyresolver.implementations.X509SKIResolver"
++                DESCRIPTION="Uses an X509v3 SubjectKeyIdentifier extension to retrieve a certificate from the storages" />
++      <Resolver JAVACLASS="org.apache.xml.security.keys.keyresolver.implementations.RetrievalMethodResolver"
++                DESCRIPTION="Resolves keys and certificates using ResourceResolvers" />
++      <Resolver JAVACLASS="org.apache.xml.security.keys.keyresolver.implementations.X509SubjectNameResolver"
++                DESCRIPTION="Uses an X509 SubjectName to retrieve a certificate from the storages" />
++      <Resolver JAVACLASS="org.apache.xml.security.keys.keyresolver.implementations.X509IssuerSerialResolver"
++                DESCRIPTION="Uses an X509 IssuerName and IssuerSerial to retrieve a certificate from the storages" />
++   </KeyResolver>
++ 
++   <PrefixMappings>
++      <!-- Many classes create Elements which are in a specific namespace;
++           here, the prefixes for these namespaces are defined. But this
++           can also be overwritten using the ElementProxy#setDefaultPrefix()
++           method. You can even set all prefixes to "" so that the corresponding
++           elements are created using the default namespace -->
++      <PrefixMapping namespace="http://www.w3.org/2000/09/xmldsig#"
++                     prefix="ds" />
++      <PrefixMapping namespace="http://www.w3.org/2001/04/xmlenc#"
++                     prefix="xenc" />
++      <PrefixMapping namespace="http://www.xmlsecurity.org/experimental#"
++                     prefix="experimental" />
++      <PrefixMapping namespace="http://www.w3.org/2002/04/xmldsig-filter2"
++                     prefix="dsig-xpath-old" />
++      <PrefixMapping namespace="http://www.w3.org/2002/06/xmldsig-filter2"
++                     prefix="dsig-xpath" />
++      <PrefixMapping namespace="http://www.w3.org/2001/10/xml-exc-c14n#"
++                     prefix="ec" />
++      <PrefixMapping namespace="http://www.nue.et-inf.uni-siegen.de/~geuer-pollmann/#xpathFilter"
++                     prefix="xx" />
++   </PrefixMappings>
++</Configuration>
+
+Property changes on: C:\java\opensource\xmlsec-1.4.2\resources\org\apache\xml\security\resource\config.xml
+___________________________________________________________________
+Added: svn:mergeinfo
+
+Index: resources/org/apache/xml/security/resource/xmlsecurity_en.properties
+===================================================================
+--- resources/org/apache/xml/security/resource/xmlsecurity_en.properties	(revision 0)
++++ resources/org/apache/xml/security/resource/xmlsecurity_en.properties	(revision 34)
+@@ -0,0 +1,123 @@
++algorithm.alreadyRegistered = URI {0} already assigned to class {1}
++algorithm.classDoesNotExist = Cannot register URI {0} to class {1} because this class does not exist in CLASSPATH
++algorithm.ClassDoesNotExist = Class {0} does not exist
++algorithm.extendsWrongClass = Cannot register URI {0} to class {1} because it does not extend {2}
++algorithms.CannotUseAlgorithmParameterSpecOnDSA = Sorry, but you cannot use a AlgorithmParameterSpec object for creating DSA signatures.
++algorithms.CannotUseAlgorithmParameterSpecOnRSA = Sorry, but you cannot use a AlgorithmParameterSpec object for creating RSA signatures.
++algorithms.CannotUseSecureRandomOnMAC = Sorry, but you cannot use a SecureRandom object for creating MACs.
++algorithms.HMACOutputLengthOnlyForHMAC = A HMACOutputLength can only be specified for HMAC integrity algorithms
++algorithms.NoSuchAlgorithm = The requested algorithm {0} does not exist. Original Message was: {1}
++algorithms.NoSuchMap = The algorithm URI "{0}" could not be mapped to a JCE algorithm
++algorithms.NoSuchProvider = The specified Provider {0} does not exist. Original Message was: {1}
++algorithms.operationOnlyVerification = A public key can only used for verification of a signature.
++algorithms.WrongKeyForThisOperation = Sorry, you supplied the wrong key type for this operation! You supplied a {0} but a {1} is needed.
++attributeValueIllegal = The attribute {0} has value {1} but must be {2}
++c14n.Canonicalizer.Exception = Exception during Canonicalization:  Original Message was {0}
++c14n.Canonicalizer.IllegalNode = Illegal node type {0}, node name was {1}
++c14n.Canonicalizer.NoSuchCanonicalizer = No canonicalizer found with URI {0}
++c14n.Canonicalizer.ParserConfigurationException = ParserConfigurationException during Canonicalization:  Original Message was {0}
++c14n.Canonicalizer.RelativeNamespace = Element {0} has a relative namespace: {1}="{2}"
++c14n.Canonicalizer.SAXException = SAXException during Canonicalization:  Original Message was {0}
++c14n.Canonicalizer.TraversalNotSupported = This DOM document does not support Traversal {0}
++c14n.Canonicalizer.UnsupportedEncoding = Unsupported encoding {0}
++c14n.Canonicalizer.UnsupportedOperation = This canonicalizer does not support this operation
++c14n.XMLUtils.circumventBug2650forgotten = The tree has not been prepared for canonicalization using XMLUtils#circumventBug2650(Document)
++certificate.noSki.lowVersion = Certificate cannot contain a SubjectKeyIdentifier because it is only X509v{0}
++certificate.noSki.notOctetString = Certificates SubjectKeyIdentifier is not a OctetString
++certificate.noSki.null = Certificate does not contain a SubjectKeyIdentifier
++defaultNamespaceCannotBeSetHere = Default namespace cannot be set here
++ElementProxy.nullElement = Cannot create an ElementProxy from a null argument
++empty = {0}
++encryption.algorithmCannotBeUsedForEncryptedData = encryption.algorithmCannotBeUsedForEncryptedData {0}
++encryption.algorithmCannotEatInitParams = encryption.algorithmCannotEatInitParams
++encryption.algorithmCannotEncryptDecrypt = encryption.algorithmCannotEncryptDecrypt
++encryption.algorithmCannotWrapUnWrap = encryption.algorithmCannotWrapUnWrap
++encryption.ExplicitKeySizeMismatch = The xenc:KeySize element requests a key size of {0} bit but the algorithm implements {1} bit
++encryption.nonceLongerThanDecryptedPlaintext = The given nonce is longer than the available plaintext. I Cannot strip away this.
++encryption.RSAOAEP.dataHashWrong = data hash wrong
++encryption.RSAOAEP.dataStartWrong = data wrong start {0}
++encryption.RSAOAEP.dataTooShort = data too short
++encryption.RSAPKCS15.blockTruncated = block truncated
++encryption.RSAPKCS15.noDataInBlock = no data in block
++encryption.RSAPKCS15.unknownBlockType = unknown block type
++encryption.nokey = No Key Encryption Key loaded and cannot determine using key resolvers
++endorsed.jdk1.4.0 = Since it seems that nobody reads our installation notes, we must do it in the exception messages. Hope you read them. You did NOT use the endorsed mechanism from JDK 1.4 properly; look at <http://xml.apache.org/security/Java/installation.html> how to solve this problem.
++errorMessages.InvalidDigestValueException = INVALID signature -- check reference resolution.
++errorMessages.InvalidSignatureValueException = INVALID signature -- core validation failed.
++errorMessages.IOException = Other file I/O and similar exceptions.
++errorMessages.MissingKeyFailureException = Cannot verify because of missing public key. Provide it via addResource and try again.
++errorMessages.MissingResourceFailureException = Cannot verify because of unresolved references. Provide it via addResource and try again.
++errorMessages.NoSuchAlgorithmException = Unknown Algorithm {0}
++errorMessages.NotYetImplementedException = Functionality not yet there.
++errorMessages.XMLSignatureException = Verification failed for some other reason.
++decoding.divisible.four = It should be divisible by four
++decoding.general = Error while decoding
++FileKeyStorageImpl.addToDefaultFromRemoteNotImplemented = Method addToDefaultFromRemote() not yet implemented.
++FileKeyStorageImpl.NoCert.Context = Not found such a X509Certificate including context {0}
++FileKeyStorageImpl.NoCert.IssNameSerNo = Not found such a X509Certificate with IssuerName {0} and serial number {1}
++FileKeyStorageImpl.NoCert.SubjName = Not found such a X509Certificate including SubjectName {0}
++generic.dontHaveConstructionElement = I do not have a construction Element
++generic.EmptyMessage = {0}
++generic.NotYetImplemented = {0} Not YET implemented ;-((
++java.security.InvalidKeyException = Invalid key
++java.security.NoSuchProviderException = Unknown or unsupported provider
++java.security.UnknownKeyType = Unknown or unsupported key type {0}
++KeyInfo.needKeyResolver = More than one keyResovler have to be registered
++KeyInfo.nokey = Cannot get key from {0}
++KeyInfo.noKey = Cannot get the public key
++KeyInfo.wrongNumberOfObject = Need {0} keyObjects
++KeyInfo.wrongUse = This object was made for getting {0}
++keyResolver.alreadyRegistered = {1} class has already been registered for {0}
++KeyResolver.needStorageResolver = Need a StorageResolver to retrieve a Certificate from a {0}
++KeyResoverSpiImpl.cannotGetCert = Cannot get the Certificate that include or in {1} in implement class {0}
++KeyResoverSpiImpl.elementGeneration = Cannot make {1} element in implement class {0}
++KeyResoverSpiImpl.getPoublicKey = Cannot get the public key from implement class {0}
++KeyResoverSpiImpl.InvalidElement = Cannot set (2) Element in implement class {0}
++KeyResoverSpiImpl.keyStore = KeyStorage error in implement class {0}
++KeyResoverSpiImpl.need.Element = {1} type of Element is needed in implement class {0}
++KeyResoverSpiImpl.wrongCRLElement = Cannot make CRL from {1} in implement class {0}
++KeyResoverSpiImpl.wrongKeyObject =  Need {1} type of KeyObject for generation Element in implement class{0}
++KeyResoverSpiImpl.wrongNumberOfObject = Need {1} keyObject in implement class {0}
++KeyStore.alreadyRegistered = {0} Class has already been registered for {1}
++KeyStore.register = {1} type class register error  in class {0}
++KeyStore.registerStore.register = Registeration error for type {0}
++KeyValue.IllegalArgument = Cannot create a {0} from {1}
++namespacePrefixAlreadyUsedByOtherURI = Namespace prefix {0} already used by other URI {1}
++notYetInitialized = The module {0} is not yet initialized
++prefix.AlreadyAssigned = You want to assign {0} as prefix for namespace {1} but it is already assigned for {2}
++signature.Canonicalizer.UnknownCanonicalizer = Unknown canonicalizer. No handler installed for URI {0}
++signature.DSA.invalidFormat = Invalid ASN.1 encoding of the DSA signature
++signature.Generation.signBeforeGetValue = You have to XMLSignature.sign(java.security.PrivateKey) first
++signature.signaturePropertyHasNoTarget = The Target attribute of the SignatureProperty must be set
++signature.Transform.ErrorDuringTransform = A {1} was thrown during the {0} transform
++signature.Transform.NotYetImplemented = Transform {0} not yet implemented
++signature.Transform.NullPointerTransform = Null pointer as URI. Programming bug?
++signature.Transform.UnknownTransform = Unknown transformation. No handler installed for URI {0}
++signature.Transform.node = Current Node: {0}
++signature.Transform.nodeAndType = Current Node: {0}, type: {1} 
++signature.Util.BignumNonPositive = bigInteger.signum() must be positive
++signature.Util.NonTextNode = Not a text node
++signature.Util.TooManyChilds = Too many childs of Type {0} in {1}
++signature.Verification.certificateError = Certificate error
++signature.Verification.IndexOutOfBounds = Index {0} illegal. We only have {1} References
++signature.Verification.internalError = Internal error
++signature.Verification.InvalidDigestOrReference = Invalid digest of reference {0}
++signature.Verification.keyStore = KeyStore error
++signature.Verification.MissingID = Cannot resolve element with ID {0}
++signature.Verification.MissingResources = Cannot resolve external resource {0}
++signature.Verification.NoSignatureElement = Input document contains no {0} Element in namespace {1}
++signature.Verification.Reference.NoInput = The Reference for URI {0} has no XMLSignatureInput
++signature.Verification.SignatureError = Signature error
++signature.XMLSignatureInput.MissingConstuctor = Cannot construct a XMLSignatureInput from class {0}
++signature.XMLSignatureInput.SerializeDOM = Input initialized with DOM Element. Use Canonicalization to serialize it
++signature.XMLSignatureInput.nodesetReference = Unable to convert to nodeset the reference
++transform.Init.IllegalContextArgument = Invalid context argument of class {0}. Must be String, org.w3c.dom.NodeList or java.io.InputStream.
++transform.init.NotInitialized =
++transform.init.wrongURI = Initialized with wrong URI. How could this happen? We implement {0} but {1} was used during initialization
++utils.Base64.IllegalBitlength = Illegal byte length; Data to be decoded must be a multiple of 4
++Base64Decoding = Error while decoding
++utils.resolver.noClass = Could not find a resolver for URI {0} and Base {1}
++xml.WrongContent = Cannot find {0} in {1}
++xml.WrongElement = Cannot create a {0} from a {1} element
++xpath.funcHere.documentsDiffer = The XPath is not in the same document as the context node
++xpath.funcHere.noXPathContext = Try to evaluate an XPath which uses the here() function but XPath is not inside an ds:XPath Element. XPath was : {0}
+
+Property changes on: C:\java\opensource\xmlsec-1.4.2\resources\org\apache\xml\security\resource\xmlsecurity_en.properties
+___________________________________________________________________
+Added: svn:mergeinfo
+
+Index: resources/org/apache/xml/security/resource/log4j.properties
+===================================================================
+--- resources/org/apache/xml/security/resource/log4j.properties	(revision 0)
++++ resources/org/apache/xml/security/resource/log4j.properties	(revision 34)
+@@ -0,0 +1,36 @@
++# ------------------------------------------------------------------------
++#
++# Logging Configuration
++#
++# ------------------------------------------------------------------------
++#
++log4j.rootLogger=DEBUG, LOGTXT
++
++########################################################################
++#
++# Logging based on packages
++#
++########################################################################
++log4j.logger.org.apache.xml.security=DEBUG, LOGTXT
++log4j.logger.org.apache.xml.security.test.AllTests=DEBUG, LOGTXT
++
++########################################################################
++#
++# Logfile definitions 
++#
++########################################################################
++#Console Log
++log4j.appender.Console=org.apache.log4j.ConsoleAppender
++log4j.appender.Console.Threshold=DEBUG
++log4j.appender.Console.layout=org.apache.log4j.PatternLayout
++log4j.appender.Console.layout.ConversionPattern=%-5p %C{1}:%L - %m\n
++log4j.appender.Console.Target=System.err
++
++#LOGTXT Log
++log4j.appender.LOGTXT=org.apache.log4j.FileAppender
++log4j.appender.LOGTXT.File=log.txt
++log4j.appender.LOGTXT.Append=true
++log4j.appender.LOGTXT.Threshold=DEBUG
++log4j.appender.LOGTXT.layout=org.apache.log4j.PatternLayout
++log4j.appender.LOGTXT.layout.ConversionPattern=%-5p %C{1}:%L - %m\n
++
+
+Property changes on: C:\java\opensource\xmlsec-1.4.2\resources\org\apache\xml\security\resource\log4j.properties
+___________________________________________________________________
+Added: svn:mergeinfo
+
+Index: resources/org/apache/xml/security/resource/xmlsecurity_es.properties
+===================================================================
+--- resources/org/apache/xml/security/resource/xmlsecurity_es.properties	(revision 0)
++++ resources/org/apache/xml/security/resource/xmlsecurity_es.properties	(revision 34)
+@@ -0,0 +1,123 @@
++algorithm.alreadyRegistered = La URI {0} ya está asiganda a la clase {1}
++algorithm.classDoesNotExist = No se puede asociar la URI {0} a la clase {1} porque esta clase no existe en el CLASSPATH
++algorithm.ClassDoesNotExist = La clase {0} no existe
++algorithm.extendsWrongClass = No se puede asociar la URI {0} a la clase {1} porque no extiende {2}
++algorithms.CannotUseAlgorithmParameterSpecOnDSA = Disculpa, no puedes utilizar un objeto AlgorithmParameterSpec para crear firmas DSA.
++algorithms.CannotUseAlgorithmParameterSpecOnRSA = Disculpa, no puedes utilizar un objeto AlgorithmParameterSpec para crear firmas RSA.
++algorithms.CannotUseSecureRandomOnMAC = Disculpa, no puedes utilizar un objeto SecureRandom para crear MACs.
++algorithms.HMACOutputLengthOnlyForHMAC = Sólo se puede especificar un HMACOutputLength para algoritmos HMAC de integridad
++algorithms.NoSuchAlgorithm = El algoritmo requerido {0} no existe. El mensaje original era: {1}
++algorithms.NoSuchMap = El algoritmo con URI "{0}" no se puede relacionar con un algoritmo JCE
++algorithms.NoSuchProvider = El Proveedor especificado {0} no existe. El mensaje original era: {1}
++algorithms.operationOnlyVerification = Una clave pública sólo puede ser usada para la verificación de una firma.
++algorithms.WrongKeyForThisOperation = Disculpe, ¡proporcionó el tipo incorrecto de clave para esta operación! Proporcionó una {0} pero se necesita una {1}.
++attributeValueIllegal = El atributo {0} tiene valor {1} pero debería ser {2}
++c14n.Canonicalizer.Exception = Excepción durante la canonicalización:  el mensaje original era {0}
++c14n.Canonicalizer.IllegalNode = Tipo de nodo ilegal {0}, el nombre del nodo era {1}
++c14n.Canonicalizer.NoSuchCanonicalizer = No se encontró canonicalizador con URI {0}
++c14n.Canonicalizer.ParserConfigurationException = ParserConfigurationException en la canonicalización:  el mensaje original era {0}
++c14n.Canonicalizer.RelativeNamespace = El elemento {0} tiene un espacio de nombres relativo: {1}="{2}"
++c14n.Canonicalizer.SAXException = SAXException en la canonicalización:  el mensaje original era {0}
++c14n.Canonicalizer.TraversalNotSupported = Este documento DOM no soporta Traversal {0}
++c14n.Canonicalizer.UnsupportedEncoding = Codificación no soportada {0}
++c14n.Canonicalizer.UnsupportedOperation = Este canonicalizador no soporta esa operación
++c14n.XMLUtils.circumventBug2650forgotten = El arbol no ha sido preparado para usar XMLUtils#circumventBug2650(Document) en la canonicalización
++certificate.noSki.lowVersion = El certificado no puede contener un campo SubjectKeyIdentifier porque es sólo X509v{0}
++certificate.noSki.notOctetString = El campo SubjectKeyIdentifier del certificado no es del tipo OctetString
++certificate.noSki.null = El certificado no contiene un SubjectKeyIdentifier
++defaultNamespaceCannotBeSetHere = El espacio de nombres por defecto no se puede establecer aquí
++ElementProxy.nullElement = No se puede crear un ElementProxy de un argumento nulo
++empty = {0}
++encryption.algorithmCannotBeUsedForEncryptedData = encryption.algorithmCannotBeUsedForEncryptedData {0}
++encryption.algorithmCannotEatInitParams = encryption.algorithmCannotEatInitParams
++encryption.algorithmCannotEncryptDecrypt = encryption.algorithmCannotEncryptDecrypt
++encryption.algorithmCannotWrapUnWrap = encryption.algorithmCannotWrapUnWrap
++encryption.ExplicitKeySizeMismatch = El elemento xenc:KeySize pide una clave de {0} bits de tamaño pero el algoritmo implementa {1} bits
++encryption.nonceLongerThanDecryptedPlaintext = El nonce dado es mayor que el texto plano disponible. No puedo separar esto.
++encryption.RSAOAEP.dataHashWrong = resumen de datos erróneo
++encryption.RSAOAEP.dataStartWrong = datos tienen mal comienzo {0}
++encryption.RSAOAEP.dataTooShort = pocos datos
++encryption.RSAPKCS15.blockTruncated = bloque cortado
++encryption.RSAPKCS15.noDataInBlock = no hay datos en el bloque
++encryption.RSAPKCS15.unknownBlockType = tipo de bloque desconocido
++encryption.nokey = No hay clave de encriptación cargada y no se puede determinar utilizando los buscadores de claves
++endorsed.jdk1.4.0 = Ya que parece que nadie lee las notas de instalación, tendremos que hacerlo en los mensajes de excepción. Esperamos que los leas. NO has utilizado el mecanismo de respaldo (endorsed) de la JDK 1.4 adecuadamente; consulta <http://xml.apache.org/security/Java/installation.html> para ver cómo resolver este problema.
++errorMessages.InvalidDigestValueException = firma INVÁLIDA -- comprueba la resolución de las referencias.
++errorMessages.InvalidSignatureValueException = firma INVÁLIDA -- la validación básica falló.
++errorMessages.IOException = Excepciones del tipo E/S y similares.
++errorMessages.MissingKeyFailureException = No se puede verificar debido a la ausencia de una clave pública. Provéala a través de addResource y vuelva a intentarlo.
++errorMessages.MissingResourceFailureException = No se puede verificar debido a referencias no resueltas. Provéalas vía addResource y vuelva a intentarlo.
++errorMessages.NoSuchAlgorithmException = Algoritmo desconocido {0}
++errorMessages.NotYetImplementedException = Funcionalidad no disponible todavía.
++errorMessages.XMLSignatureException = La verificación fallo por alguna otra razón.
++decoding.divisible.four = Debería ser divisible por cuatro
++decoding.general = Error durante la descodificación
++FileKeyStorageImpl.addToDefaultFromRemoteNotImplemented = Método addToDefaultFromRemote() no está implementado todavía.
++FileKeyStorageImpl.NoCert.Context = No se ha encontrado el X509Certificate que contiene el contexto {0}
++FileKeyStorageImpl.NoCert.IssNameSerNo = No se ha encontrado el X509Certificate con IssuerName {0} y número serie {1}
++FileKeyStorageImpl.NoCert.SubjName = No se ha encontrado el X509Certificate que contiene SubjectName {0}
++generic.dontHaveConstructionElement = No tengo un Elemento de construcción
++generic.EmptyMessage = {0}
++generic.NotYetImplemented = {0} No está implementado TODAVÍA ;-((
++java.security.InvalidKeyException = Clave inválida
++java.security.NoSuchProviderException = Proveedor desconocido o no soportado
++java.security.UnknownKeyType = Tipo de clave desconocida o no soportada {0}
++KeyInfo.needKeyResolver = Se tiene que registrar más de un KeyResolver
++KeyInfo.nokey = No se puede conseguir la clave de {0}
++KeyInfo.noKey = No se puede conseguir la clave pública
++KeyInfo.wrongNumberOfObject = Se necesitan {0} keyObjects
++KeyInfo.wrongUse = Este objeto fue hecho para recuperar {0}
++keyResolver.alreadyRegistered = La clase {1} ya ha sido registrada para {0}
++KeyResolver.needStorageResolver = Es necesario un StorageResolver para recuperar un Certificado de un {0}
++KeyResoverSpiImpl.cannotGetCert = No se puede conseguir el Certificado que incluye {1} en la clase {0}
++KeyResoverSpiImpl.elementGeneration = No se puede construir un elemento {1} en la clase {0}
++KeyResoverSpiImpl.getPoublicKey = No se puede conseguir la clave pública de la clase {0}
++KeyResoverSpiImpl.InvalidElement = No se puede establecer (2) Elementos en la clase {0}
++KeyResoverSpiImpl.keyStore = Error del tipo KeyStorage en la clase implementada {0}
++KeyResoverSpiImpl.need.Element = Se necesita elemento del tipo {1} en la clase {0}
++KeyResoverSpiImpl.wrongCRLElement = No se puede construir una CRL desde {1} con la clase {0}
++KeyResoverSpiImpl.wrongKeyObject =  Se necesita un KeyObject de tipo {1} para la generar un Elemento con la clase {0}
++KeyResoverSpiImpl.wrongNumberOfObject = Se necesita {1} KeyObject en la clase {0}
++KeyStore.alreadyRegistered = La clase {0} ya ha sido regustrada para {1}
++KeyStore.register = Error de registro de clases de tipo {1} con la clase {0}
++KeyStore.registerStore.register = Error de registro para el tipo {0}
++KeyValue.IllegalArgument = No se puede crear un {0} de {1}
++namespacePrefixAlreadyUsedByOtherURI = Prefijo de espacio de nombres {0} ya en uso por otra URI {1}
++notYetInitialized = El módulo {0} no está inicializado todavía
++prefix.AlreadyAssigned = Quieres asignar {0} como prefijo para el espacio de nombres {1} pero ya está asignado para {2}
++signature.Canonicalizer.UnknownCanonicalizer = Canonicalizador desconocido. No hay gestionador instalado para la URI {0}
++signature.DSA.invalidFormat = Codificación ASN.1 inválida para la firma DSA
++signature.Generation.signBeforeGetValue = Tienes que utilizar XMLSignature.sign(java.security.PrivateKey) primero
++signature.signaturePropertyHasNoTarget = Debes establecer el atributo Target del elemento SignatureProperty
++signature.Transform.ErrorDuringTransform = Se lanzó un error {1} durante la transformación {0}
++signature.Transform.NotYetImplemented = La transformación {0} no está implementada todavía
++signature.Transform.NullPointerTransform = Referencia nula como URI. ¿Error de programación?
++signature.Transform.UnknownTransform = Transformación desconocida. No hay gestionador instalado para la URI {0}
++signature.Transform.node = Nodo actual: {0}
++signature.Transform.nodeAndType = Nodo actual: {0}, tipo: {1} 
++signature.Util.BignumNonPositive = bigInteger.signum() debe ser positivo
++signature.Util.NonTextNode = No es un nodo de texto
++signature.Util.TooManyChilds = Demasiados hijos del tipo {0} en {1}
++signature.Verification.certificateError = Error en certificado
++signature.Verification.IndexOutOfBounds = Índice {0} es ilegal. Sólo disponemos de {1} References
++signature.Verification.internalError = Error interno 
++signature.Verification.InvalidDigestOrReference = Resumen inválido de la referencia {0}
++signature.Verification.keyStore = Error en el KeyStore
++signature.Verification.MissingID = No se puede encontrar elemento con ID {0}
++signature.Verification.MissingResources = No se puede encontrar recurso externo {0}
++signature.Verification.NoSignatureElement = El documento de entrada no contiene el elemento {0} en el espacio de nombres {1}
++signature.Verification.Reference.NoInput = El Reference para la URI {0} no tiene XMLSignatureInput
++signature.Verification.SignatureError = Error en la firma
++signature.XMLSignatureInput.MissingConstuctor = No se puede construir un elemento XMLSignatureInput de la clase {0}
++signature.XMLSignatureInput.SerializeDOM = Entrada inicializada con Elemento DOM. Use Canonicalización para serializarlo
++signature.XMLSignatureInput.nodesetReference = Imposible convertir el Reference en un conjunto de nodos
++transform.Init.IllegalContextArgument = Argumento de contexto inválido de la clase {0}. Debe ser String, org.w3c.dom.NodeList o java.io.InputStream.
++transform.init.NotInitialized =
++transform.init.wrongURI = Inicializado con una URI errónea. ¿Cómo ha podido pasar? Implementamos {0} pero se usó {1} durante la inicialización
++utils.Base64.IllegalBitlength = Longitud de bytes ilegal; La información a ser descodificada debe ser múltiplo de 4
++Base64Decoding = Error durante la descodificación
++utils.resolver.noClass = No se puede encontrar un recuperador para la URI {0} y la Base {1}
++xml.WrongContent = No se puede encontra {0} en {1}
++xml.WrongElement = No se puede crear un {0} de un elemento {1}
++xpath.funcHere.documentsDiffer = El XPath no señala al mismo documento que el del nodo del contexto
++xpath.funcHere.noXPathContext = Se intentó evaluar una expresión XPath que usa la función here() pero el XPath no está dentro de un elemento ds:XPath. El XPath era: {0}
+Index: resources/org/apache/xml/security/resource/xmlsecurity_de.properties
+===================================================================
+--- resources/org/apache/xml/security/resource/xmlsecurity_de.properties	(revision 0)
++++ resources/org/apache/xml/security/resource/xmlsecurity_de.properties	(revision 34)
+@@ -0,0 +1,119 @@
++algorithm.alreadyRegistered = URI {0} wurde bereits an die Klasse {1} gebunden
++algorithm.classDoesNotExist = Kann URI {0} nicht für Klasse {1} registrieren weil sie nicht existiert
++algorithm.ClassDoesNotExist = Klasse {0} existiert nicht
++algorithm.extendsWrongClass = Kann URI {0} nicht für Klasse {1} registrieren weil sie nicht {2} extended
++algorithms.CannotUseAlgorithmParameterSpecOnDSA = Sorry, but you cannot use a AlgorithmParameterSpec object for creating DSA signatures.
++algorithms.CannotUseAlgorithmParameterSpecOnRSA = Sorry, but you cannot use a AlgorithmParameterSpec object for creating RSA signatures.
++algorithms.CannotUseSecureRandomOnMAC = Sorry, but you cannot use a SecureRandom object for creating MACs.
++algorithms.HMACOutputLengthOnlyForHMAC = A HMACOutputLength can only be specified for HMAC integrity algorithms
++algorithms.NoSuchAlgorithm = Der Algorithmus {0} ist nicht verfügbar. Original Nachricht war: {1}
++algorithms.NoSuchMap = The algorithm URI "{0}" could not be mapped to a JCE algorithm
++algorithms.NoSuchProvider = The specified Provider {0} does not exist. Original Message was: {1}
++algorithms.operationOnlyVerification = A public key can only used for verification of a signature.
++algorithms.WrongKeyForThisOperation = Sorry, you supplied the wrong key type for this operation! You supplied a {0} but a {1} is needed.
++attributeValueIllegal = The attribute {0} has value {1} but must be {2}
++c14n.Canonicalizer.Exception = Exception während Kanonisierung:  Original Nachricht war {0}
++c14n.Canonicalizer.IllegalNode = Unzulässiger NodeType {0}, NodeName lautete {1}
++c14n.Canonicalizer.NoSuchCanonicalizer = Kein Canonicalizer mit dem URI {0} gefunden
++c14n.Canonicalizer.ParserConfigurationException = ParserConfigurationException während Kanonisierung:  Original Nachricht war {0}
++c14n.Canonicalizer.RelativeNamespace = Das Element {0} hat einen relativen Namespace: {1}="{2}"
++c14n.Canonicalizer.SAXException = SAXException während Kanonisierung:  Original Nachricht war {0}
++c14n.Canonicalizer.TraversalNotSupported = Das DOM Dokument unterstützt keine Traversal {0}
++c14n.Canonicalizer.UnsupportedEncoding = Unbekannte Kodierung {0}
++c14n.Canonicalizer.UnsupportedOperation = This canonicalizer does not support this operation
++c14n.XMLUtils.circumventBug2650forgotten = The tree has not been prepared for canonicalization using XMLUtils#circumventBug2650(Document)
++certificate.noSki.lowVersion = Certificate cannot contain a SubjectKeyIdentifier because it is only X509v{0}
++certificate.noSki.notOctetString = Certificates SubjectKeyIdentifier is not a OctetString
++certificate.noSki.null = Certificate does not contain a SubjectKeyIdentifier
++defaultNamespaceCannotBeSetHere = Default namespace cannot be set here
++ElementProxy.nullElement = Kann einen ElementProxy aus einem null Argument erzeugen
++empty = {0}
++encryption.algorithmCannotBeUsedForEncryptedData = encryption.algorithmCannotBeUsedForEncryptedData {0}
++encryption.algorithmCannotEatInitParams = encryption.algorithmCannotEatInitParams
++encryption.algorithmCannotEncryptDecrypt = encryption.algorithmCannotEncryptDecrypt
++encryption.algorithmCannotWrapUnWrap = encryption.algorithmCannotWrapUnWrap
++encryption.ExplicitKeySizeMismatch = The xenc:KeySize element requests a key size of {0} bit but the algorithm implements {1} bit
++encryption.nonceLongerThanDecryptedPlaintext = The given nonce is longer than the available plaintext. I Cannot strip away this.
++encryption.RSAOAEP.dataHashWrong = data hash wrong
++encryption.RSAOAEP.dataStartWrong = data wrong start {0}
++encryption.RSAOAEP.dataTooShort = data too short
++encryption.RSAPKCS15.blockTruncated = block truncated
++encryption.RSAPKCS15.noDataInBlock = no data in block
++encryption.RSAPKCS15.unknownBlockType = unknown block type
++encryption.nokey = No Key Encryption Key loaded and cannot determine using key resolvers
++endorsed.jdk1.4.0 = Since it seems that nobody reads our installation notes, we must do it in the exception messages. Hope you read them. You did NOT use the endorsed mechanism from JDK 1.4 properly; look at <http://xml.apache.org/security/Java/installation.html> how to solve this problem.
++errorMessages.InvalidDigestValueException = Ungültige Signatur: Reference Validation fehlgeschlagen.
++errorMessages.InvalidSignatureValueException = Ungültige Signatur: Core Validation fehlgeschlagen.
++errorMessages.IOException = Datei oder Resource kann nicht gelesen werden.
++errorMessages.MissingKeyFailureException = Verifizieren fehlgeschlagen, weil der öffentliche Schlüssel (public key) nicht verfügbar ist. Resourcen via addResource() hinzufügen und erneut verifizieren.
++errorMessages.MissingResourceFailureException = Verifizieren fehlgeschlagen, weil Resourcen nicht verfügbar sind. Resourcen via addResource() hinzufügen und erneut verifizieren.
++errorMessages.NoSuchAlgorithmException = Unbekannter Algorithmus {0}
++errorMessages.NotYetImplementedException = Funktionalität noch nicht implementiert.
++errorMessages.XMLSignatureException = Verifizieren aus unbekanntem Grund fehlgeschlagen.
++decoding.divisible.four = It should be divisible by four
++decoding.general = Error while decoding
++FileKeyStorageImpl.addToDefaultFromRemoteNotImplemented = Method addToDefaultFromRemote() not yet implemented.
++FileKeyStorageImpl.NoCert.Context = Not found such a X509Certificate including context {0}
++FileKeyStorageImpl.NoCert.IssNameSerNo = Not found such a X509Certificate with IssuerName {0} and serial number {1}
++FileKeyStorageImpl.NoCert.SubjName = Not found such a X509Certificate including SubjectName {0}
++generic.dontHaveConstructionElement = I do not have a construction Element
++generic.EmptyMessage = {0}
++generic.NotYetImplemented = {0} Leider noch nicht implementiert ;-((
++java.security.InvalidKeyException = Ungültiger Schlüssel
++java.security.NoSuchProviderException = Unbekannter oder nicht unterstützter Provider
++java.security.UnknownKeyType = Unbekannter oder nicht unterstützter Key type {0}
++KeyInfo.needKeyResolver = Es müssen mehrere KeyResolver registriert sein
++KeyInfo.nokey = Kann keinen Schlüssel aus {0} gewinnen
++KeyInfo.noKey = Kann keinen öffentlichen Schlüssel finden
++KeyInfo.wrongNumberOfObject = Benötige {0} keyObjects
++KeyInfo.wrongUse = Dieses Objekt wird verwendet, um {0} zu gewinnen
++keyResolver.alreadyRegistered = Die Klasse {1} wurde bereits registriert für {0}
++KeyResolver.needStorageResolver = Need a StorageResolver to retrieve a Certificate from a {0}
++KeyResoverSpiImpl.cannotGetCert = Cannot get the Certificate that include or in {1} in implement class {0}
++KeyResoverSpiImpl.elementGeneration = Cannot make {1} element in implement class {0}
++KeyResoverSpiImpl.getPoublicKey = Cannot get the public key from implement class {0}
++KeyResoverSpiImpl.InvalidElement = Cannot set (2) Element in implement class {0}
++KeyResoverSpiImpl.keyStore = KeyStorage error in implement class {0}
++KeyResoverSpiImpl.need.Element = {1} type of Element is needed in implement class {0}
++KeyResoverSpiImpl.wrongCRLElement = Cannot make CRL from {1} in implement class {0}
++KeyResoverSpiImpl.wrongKeyObject =  Need {1} type of KeyObject for generation Element in implement class{0}
++KeyResoverSpiImpl.wrongNumberOfObject = Need {1} keyObject in implement class {0}
++KeyStore.alreadyRegistered = {0} Class has already been registered for {1}
++KeyStore.register = {1} type class register error  in class {0}
++KeyStore.registerStore.register = Registeration error for type {0}
++KeyValue.IllegalArgument = Cannot create a {0} from {1}
++namespacePrefixAlreadyUsedByOtherURI = Namespace {0} already used by other URI {1}
++notYetInitialized = Das Modul {0} ist noch nicht initialisiert
++prefix.AlreadyAssigned = Sie binden den Prefix {0} an den Namespace {1} aber er ist bereits an {2} zugewiesen
++signature.Canonicalizer.UnknownCanonicalizer = Unbekannter Canonicalizer. Kein Handler installiert für URI {0}
++signature.DSA.invalidFormat = Invalid ASN.1 encoding of the DSA signature
++signature.Generation.signBeforeGetValue = You have to XMLSignature.sign(java.security.PrivateKey) first
++signature.signaturePropertyHasNoTarget = Das Target Attribut der SignatureProperty muss gesetzt sein
++signature.Transform.ErrorDuringTransform = Während der Transformation {0} trat eine {1} auf.
++signature.Transform.NotYetImplemented = Transform {0} noch nicht implementiert
++signature.Transform.NullPointerTransform = Null pointer als URI übergeben. Programmierfehler?
++signature.Transform.UnknownTransform = Unbekannte Transformation. Kein Handler installiert für URI {0}
++signature.Util.BignumNonPositive = bigInteger.signum() muß positiv sein
++signature.Util.NonTextNode = Kein Text Node
++signature.Util.TooManyChilds = Zu viele Child-Elemente vom Type {0} in {1}
++signature.Verification.certificateError = Zertifikatsfehler
++signature.Verification.IndexOutOfBounds = Index {0} illegal. We only have {1} References
++signature.Verification.internalError = Interner Fehler
++signature.Verification.InvalidDigestOrReference = Ungültiger Digest Wert oder Reference Element {0}
++signature.Verification.keyStore = Öffnen des KeyStore fehlgeschlagen
++signature.Verification.MissingID = Cannot resolve element with ID {0}
++signature.Verification.MissingResources = Kann die externe Resource {0} nicht auflösen
++signature.Verification.NoSignatureElement = Input Dokument enthält kein {0} Element mit dem Namespace {1}
++signature.Verification.Reference.NoInput = Die Reference für den URI {0} hat keinen XMLSignatureInput erhalten.
++signature.Verification.SignatureError = Signatur Fehler
++signature.XMLSignatureInput.MissingConstuctor = Kann aus der Klasse {0} keinen XMLSignatureInput erzeugen
++signature.XMLSignatureInput.SerializeDOM = Input mit einem DOM Dokument initialisiert. Muß mit C14N serialisiert werden
++transform.Init.IllegalContextArgument = Unzulässiges Kontext Argument der Klasse {0}. Muss String, org.w3c.dom.NodeList oder java.io.InputStream sein.
++transform.init.NotInitialized =
++transform.init.wrongURI = Initialisiert mit dem falschen URI. Das sollte nie passieren. Die Transformation implementiert {0} aber {1} wurde bei der Instantiierung verwendet.
++utils.Base64.IllegalBitlength = Ungültige Bytelänge; Muss ein vielfaches von 4 sein
++utils.resolver.noClass = Could not find a resolver for URI {0} and Base {1}
++xml.WrongContent = Kann {0} nicht finden in {1}
++xml.WrongElement = Kann kein {0} aus einem {1} Element erzeugen
++xpath.funcHere.documentsDiffer = Der XPath ist nicht im selben Dokument wie der Kontext Node
++xpath.funcHere.noXPathContext = Try to evaluate an XPath which uses the here() function but XPath is not inside an ds:XPath Element. XPath was : {0}
+
+Property changes on: C:\java\opensource\xmlsec-1.4.2\resources\org\apache\xml\security\resource\xmlsecurity_de.properties
+___________________________________________________________________
+Added: svn:mergeinfo
+
+Index: resources/org/apache/xml/security/resource/package.html
+===================================================================
+--- resources/org/apache/xml/security/resource/package.html	(revision 0)
++++ resources/org/apache/xml/security/resource/package.html	(revision 34)
+@@ -0,0 +1,3 @@
++<HTML> <HEAD> </HEAD> <BODY> <P>
++software configuration and internationalization ({@link org.apache.xml.security.utils.I18n}).
++</P></BODY> </HTML>
+
+Property changes on: C:\java\opensource\xmlsec-1.4.2\resources\org\apache\xml\security\resource\package.html
+___________________________________________________________________
+Added: svn:mergeinfo
+
+Index: build.xml
+===================================================================
+--- build.xml	(revision 5)
++++ build.xml	(revision 34)
+@@ -1,6 +1,7 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+ <project name="xmlsec" default="all" basedir=".">
+     <description>Build para el mÃ³dulo xmlsec</description>
++    <property file="../constants.properties"/>
+ 	<property file="build.properties"/>
+ 	<target name="cleanDist.check" >
+ 		<condition property="cleanDist.run">
+@@ -10,8 +11,8 @@
+ 	<target name="cleanDist" depends="cleanDist.check" if="cleanDist.run" description="Limpia el directorio de distribuciÃ³n">
+ 		<echo level="info" message="Limpiando directorio de distribucion" />
+ 		<delete failonerror="false">
+-			<fileset file="${dirDist}/${project.name}.jar" />
+-			<fileset file="${dirDist}/${project.name}_debug.jar" />
++			<fileset file="${dirDist}/release/${project.name}.jar" />
++			<fileset file="${dirDist}/debug/${project.name}.jar" />
+ 		</delete>
+ 	</target>
+ 	<target name="cleanBuild.check" >
+@@ -75,16 +76,16 @@
+ 		</copy>
+ 	</target>
+     <target name="jar_release" depends="buildRelease.check" if="build.release" description="Empaqueta el proyecto release en un jar">
+-		<mkdir dir="${dirDist}"/>
++		<mkdir dir="${dirDist}/release"/>
+ 		<echo level="info" message="Generando paquete de distribuciÃ³n release de ${project.name}" />
+-    	<jar destfile="${dirDist}/${project.name}.jar" compress="${jar.compress}">
++    	<jar destfile="${dirDist}/release/${project.name}.jar" compress="${jar.compress}">
+         	<fileset dir="${dirBuild}/release"/>
+     	</jar>
+ 	</target>
+     <target name="jar_debug" depends="buildDebug.check" if="build.debug" description="Empaqueta el proyecto debug en un jar">
+-		<mkdir dir="${dirDist}"/>
++		<mkdir dir="${dirDist}/debug"/>
+ 		<echo level="info" message="Generando paquete de distribuciÃ³n debug de ${project.name}" />
+-    	<jar destfile="${dirDist}/${project.name}_debug.jar" compress="${jar.compress}">
++    	<jar destfile="${dirDist}/debug/${project.name}.jar" compress="${jar.compress}">
+         	<fileset dir="${dirBuild}/debug"/>
+     	</jar>
+ 	</target>
+
+Property changes on: C:\java\opensource\xmlsec-1.4.2
+___________________________________________________________________
+Added: svn:ignore
+   + .settings
+bin
+build
+
+

@@ -369,6 +369,11 @@ const ChatWidget = () => {
     }
   };
 
+  const handleResetConversation = () => {
+    setMessages([]);
+    // Opcional: podrías emitir un evento al backend si quieres reiniciar en el servidor
+  };
+
   // Solo mostrar el widget si el usuario está autenticado
   if (!user) {
     return null;
@@ -547,46 +552,62 @@ const ChatWidget = () => {
               // Chat Area
               <>
                 {/* Chat Header */}
-                <div className="p-3 border-b bg-gray-50">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <button
-                        onClick={() => setSelectedConversation('')}
-                        className="mr-2 text-gray-500 hover:text-gray-700"
-                        aria-label="Volver a conversaciones"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
-                      </button>
-                      <div className="relative">
-                        <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
-                          <span className="text-white text-xs font-medium">
-                            {getAvatarInitial(
-                              conversations.find(c => c.userId === selectedConversation)?.userName ||
-                              availableUsers.find(u => u.id === selectedConversation)?.name || 'U'
-                            )}
-                          </span>
-                        </div>
-                        {isUserOnline(selectedConversation) && (
-                          <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full border border-white"></div>
-                        )}
+                <div className="p-3 border-b bg-gray-50 flex items-center justify-between">
+                  <div className="flex items-center">
+                    <button
+                      onClick={() => setSelectedConversation('')}
+                      className="mr-2 text-gray-500 hover:text-gray-700"
+                      aria-label="Volver a conversaciones"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <div className="relative">
+                      <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                        <span className="text-white text-xs font-medium">
+                          {getAvatarInitial(
+                            conversations.find(c => c.userId === selectedConversation)?.userName ||
+                            availableUsers.find(u => u.id === selectedConversation)?.name || 'U'
+                          )}
+                        </span>
                       </div>
-                      <div className="ml-2">
-                        <p className="text-sm font-medium text-gray-900">
-                          {conversations.find(c => c.userId === selectedConversation)?.userName || 
-                           availableUsers.find(u => u.id === selectedConversation)?.name || 'Usuario'}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {isUserOnline(selectedConversation) ? 'En línea' : 'Desconectado'}
-                        </p>
-                      </div>
+                      {isUserOnline(selectedConversation) && (
+                        <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full border border-white"></div>
+                      )}
                     </div>
+                    <div className="ml-2">
+                      <p className="text-sm font-medium text-gray-900">
+                        {conversations.find(c => c.userId === selectedConversation)?.userName || 
+                         availableUsers.find(u => u.id === selectedConversation)?.name || 'Usuario'}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {isUserOnline(selectedConversation) ? 'En línea' : 'Desconectado'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={handleResetConversation}
+                      className="text-blue-600 hover:text-blue-800 text-xs px-2 py-1 border border-blue-200 rounded"
+                      title="Reiniciar conversación"
+                    >
+                      Reiniciar
+                    </button>
+                    <button
+                      onClick={toggleChat}
+                      className="text-gray-500 hover:text-red-600 ml-2"
+                      aria-label="Cerrar chat"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
                   </div>
                 </div>
 
                 {/* Messages */}
-                <div className="flex-1 overflow-y-auto p-3 space-y-2 max-h-[300px]">
+                <div className="flex-1 overflow-y-auto p-3 space-y-2 max-h-[60vh] min-h-[200px]" style={{scrollBehavior: 'smooth'}}>
                   {messages.length === 0 ? (
                     <div className="text-center text-gray-500 text-sm">
                       No hay mensajes aún

@@ -1,0 +1,19 @@
+classDiagram
+    class User {
+        +id: string
+        +name: string
+        +email: string
+        +password: string
+        +createdAt: Date
+        +updatedAt: Date
+        +roles() Role[]
+    }
+    class Client {
+        +id: string
+        +userId: string
+        +dni: string
+        +phone: string
+        +address: string
+        +createdAt: Date
+    }
+    User "1" *-- "0..*" Client : has

@@ -26,35 +26,35 @@ const Dashboard = () => {
         const promises: Promise<any>[] = [];
         
         // Expedientes
-        promises.push(axios.get('/api/cases/stats', {
+        promises.push(axios.get('/cases/stats', {
           headers: { Authorization: `Bearer ${token}` }
         }));
         
         // Citas
-        promises.push(axios.get('/api/appointments', {
+        promises.push(axios.get('/appointments', {
           headers: { Authorization: `Bearer ${token}` }
         }));
         
         // Documentos
-        promises.push(axios.get('/api/documents/stats', {
+        promises.push(axios.get('/documents/stats', {
           headers: { Authorization: `Bearer ${token}` }
         }));
 
         // Usuarios (solo para admin)
         if (user?.role === 'ADMIN') {
-          promises.push(axios.get('/api/users', {
+          promises.push(axios.get('/users', {
             headers: { Authorization: `Bearer ${token}` }
           }));
         }
 
         // Actividad reciente real
-        promises.push(axios.get('/api/cases/recent', {
+        promises.push(axios.get('/cases/recent', {
           headers: { Authorization: `Bearer ${token}` }
         }));
 
         // Actividad reciente completa para abogados
         if (user?.role === 'ABOGADO') {
-          promises.push(axios.get('/api/cases/recent-activities', {
+          promises.push(axios.get('/cases/recent-activities', {
             headers: { Authorization: `Bearer ${token}` }
           }));
         }

@@ -4,9 +4,20 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import * as express from 'express';
 import * as path from 'path';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import * as compression from 'compression';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  
+  // Configuración de CORS - debe ir ANTES de otros middleware
+  app.enableCors({
+    origin: ['http://localhost:5173', 'http://localhost:3000'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  });
   
   // Configuración global de pipes
   app.useGlobalPipes(new ValidationPipe({
@@ -15,12 +26,47 @@ async function bootstrap() {
     forbidNonWhitelisted: true,
   }));
 
-  // Configuración de CORS
-  app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true,
+  // Security Headers - configuración más permisiva para desarrollo
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'", "http://localhost:5173", "http://localhost:3000"],
+        fontSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        mediaSrc: ["'self'"],
+        frameSrc: ["'none'"],
+      },
+    },
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  }));
+
+  // Rate Limiting
+  const limiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minuto
+    max: 10000, // hasta 10000 peticiones por IP cada minuto
+    message: 'Too many requests from this IP, please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false,
   });
+  app.use('/api/', limiter);
+
+  // Stricter rate limiting for auth endpoints (desarrollo: mucho más permisivo)
+  const authLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minuto
+    max: 10000, // hasta 10000 intentos de login por IP cada minuto
+    message: 'Too many authentication attempts, please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+  app.use('/api/auth/', authLimiter);
+
+  // Compression
+  app.use(compression());
 
   // Prefijo global para la API
   app.setGlobalPrefix('api');
@@ -121,14 +167,6 @@ async function bootstrap() {
     },
     customSiteTitle: 'Sistema de Gestión Legal - API Documentation',
     customCss: `
-      .swagger-ui .topbar { display: none }
-      .swagger-ui .info .title { color: #2c3e50; font-size: 2.5em; }
-      .swagger-ui .info .description { font-size: 1.1em; line-height: 1.6; }
-      .swagger-ui .scheme-container { background: #f8f9fa; padding: 10px; border-radius: 5px; }
-      .swagger-ui .opblock.opblock-get .opblock-summary-method { background: #61affe; }
-      .swagger-ui .opblock.opblock-post .opblock-summary-method { background: #49cc90; }
-      .swagger-ui .opblock.opblock-put .opblock-summary-method { background: #fca130; }
-      .swagger-ui .opblock.opblock-delete .opblock-summary-method { background: #f93e3e; }
       .swagger-ui .opblock.opblock-patch .opblock-summary-method { background: #50e3c2; }
     `,
   });
@@ -142,4 +180,4 @@ async function bootstrap() {
   console.log(`📁 Archivos estáticos disponibles en http://localhost:${port}/uploads`);
   console.log(`📚 Documentación Swagger disponible en http://localhost:${port}/api/docs`);
 }
-bootstrap(); 
+bootstrap();

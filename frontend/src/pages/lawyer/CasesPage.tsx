@@ -42,6 +42,15 @@ interface CaseStats {
   cerrados: number;
 }
 
+interface Conversation {
+  userId: string;
+  userName: string;
+  userEmail: string;
+  lastMessage: string;
+  lastMessageTime: string;
+  unreadCount: number;
+}
+
 const CasesPage = () => {
   const [cases, setCases] = useState<Case[]>([]);
   const [filteredCases, setFilteredCases] = useState<Case[]>([]);
@@ -51,6 +60,7 @@ const CasesPage = () => {
   const [statusFilter, setStatusFilter] = useState<string>('todos');
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  const [conversations, setConversations] = useState<Conversation[]>([]);
 
   // Cargar expedientes
   useEffect(() => {
@@ -80,6 +90,22 @@ const CasesPage = () => {
     };
 
     fetchCases();
+  }, []);
+
+  // Cargar conversaciones de chat para saber si hay mensajes no leídos
+  useEffect(() => {
+    const fetchConversations = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await api.get('/chat/conversations', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setConversations(res.data);
+      } catch (err) {
+        // No mostrar error aquí
+      }
+    };
+    fetchConversations();
   }, []);
 
   // Filtrado de casos
@@ -312,39 +338,51 @@ const CasesPage = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredCases.map((caseItem) => (
-                  <tr key={caseItem.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 flex items-center gap-2">
-                      <span>{caseItem.id}</span>
-                      <button
-                        className="ml-2 px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300"
-                        title="Copiar ID"
-                        onClick={() => navigator.clipboard.writeText(caseItem.id)}
-                      >
-                        Copiar
-                      </button>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{caseItem.title}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{caseItem.client.user.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{caseItem.status}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <div className="flex space-x-2">
-                        <Link
-                          to={`/lawyer/cases/${caseItem.id}`}
-                          className="text-blue-600 hover:text-blue-900"
+                {filteredCases.map((caseItem) => {
+                  // Buscar si hay mensajes no leídos de este cliente
+                  const conv = conversations.find(c => c.userId === caseItem.client.user.id);
+                  return (
+                    <tr key={caseItem.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 flex items-center gap-2">
+                        <span>{caseItem.id}</span>
+                        <button
+                          className="ml-2 px-2 py-1 text-xs bg-gray-200 rounded hover:bg-gray-300"
+                          title="Copiar ID"
+                          onClick={() => navigator.clipboard.writeText(caseItem.id)}
                         >
-                          Ver
-                        </Link>
-                        <Link
-                          to={`/lawyer/cases/${caseItem.id}/edit`}
-                          className="text-green-600 hover:text-green-900"
-                        >
-                          Editar
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          Copiar
+                        </button>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{caseItem.title}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 flex items-center gap-2">
+                        {caseItem.client.user.name}
+                        {conv && conv.unreadCount > 0 && (
+                          <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800" title="Mensajes no leídos">
+                            <svg className="w-3 h-3 mr-1 text-yellow-600" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zm1 12H9v-2h2v2zm0-4H9V6h2v4z" /></svg>
+                            {conv.unreadCount}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{caseItem.status}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <div className="flex space-x-2">
+                          <Link
+                            to={`/lawyer/cases/${caseItem.id}`}
+                            className="text-blue-600 hover:text-blue-900"
+                          >
+                            Ver
+                          </Link>
+                          <Link
+                            to={`/lawyer/cases/${caseItem.id}/edit`}
+                            className="text-green-600 hover:text-green-900"
+                          >
+                            Editar
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

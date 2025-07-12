@@ -97,11 +97,10 @@ const ChatWidget = () => {
 
       // Mostrar notificación si no está en la conversación activa
       if (selectedConversation !== message.senderId) {
-        showNotification(message.senderName, message.content);
+        if ("Notification" in window && Notification.permission === "granted") {
+          new Notification(message.senderName, { body: message.content });
+        }
       }
-    });
-
-    newSocket.on('message_sent', (message: Message) => {
       console.log('✅ Message sent confirmation:', message);
       setMessages(prev => [...prev, message]);
     });
@@ -360,14 +359,6 @@ const ChatWidget = () => {
     }
   };
 
-  const testWebSocket = () => {
-    if (socket) {
-      console.log('🧪 Testing WebSocket connection...');
-      socket.emit('test', { message: 'Test message' });
-    } else {
-      console.log('❌ No WebSocket connection available');
-    }
-  };
 
   const handleResetConversation = () => {
     setMessages([]);

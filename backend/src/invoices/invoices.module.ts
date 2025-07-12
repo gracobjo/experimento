@@ -5,8 +5,10 @@ import { FacturaeController } from './facturae.controller';
 import { FacturaeService } from './facturae.service';
 import { ExternalSystemsController } from './external-systems.controller';
 import { ExternalSystemsService } from './external-systems.service';
+import { AuthModule } from '../auth/auth.module';
  
 @Module({
+  imports: [AuthModule],
   controllers: [InvoicesController, FacturaeController, ExternalSystemsController],
   providers: [InvoicesService, FacturaeService, ExternalSystemsService],
 })

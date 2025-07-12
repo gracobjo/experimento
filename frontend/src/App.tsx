@@ -37,6 +37,7 @@ import CasesManagementPage from './pages/admin/CasesManagementPage';
 import AppointmentsManagementPage from './pages/admin/AppointmentsManagementPage';
 import TasksManagementPage from './pages/admin/TasksManagementPage';
 import DocumentsManagementPage from './pages/admin/DocumentsManagementPage';
+import InvoicesManagementPage from './pages/admin/InvoicesManagementPage';
 import AdminReportsPage from './pages/admin/ReportsPage';
 import ParametrosConfigPage from './pages/admin/ParametrosConfigPage';
 import HomeBuilderPage from './pages/admin/HomeBuilderPage';
@@ -53,6 +54,7 @@ import ProvisionesPage from './pages/client/ProvisionesPage';
 import AppointmentsPage from './pages/client/AppointmentsPage';
 import DashboardLawyer from './pages/lawyer/DashboardLawyer';
 import UnauthorizedPage from './pages/UnauthorizedPage';
+import PaymentsPage from './pages/client/PaymentsPage';
 
 // Importar páginas legales
 import PrivacyPage from './pages/PrivacyPage';
@@ -93,6 +95,7 @@ function App() {
                   <Route path="appointments" element={<AppointmentsManagementPage />} />
                   <Route path="tasks" element={<TasksManagementPage />} />
                   <Route path="documents" element={<DocumentsManagementPage />} />
+                  <Route path="invoices" element={<InvoicesManagementPage />} />
                   <Route path="reports" element={<AdminReportsPage />} />
                   <Route path="home-builder" element={<HomeBuilderPage />} />
                   <Route path="menu-config" element={<MenuConfigPage />} />
@@ -139,7 +142,7 @@ function App() {
                   <Route path="chat" element={<ChatPage />} />
                   <Route path="teleassistance" element={<ClientTeleassistancePage />} />
                   <Route path="teleassistance/request" element={<TeleassistanceRequestPage />} />
-                  <Route path="payments" element={<PlaceholderPage title="Pagos" description="Gestionar pagos y facturas" icon="💳" />} />
+                  <Route path="payments" element={<PaymentsPage />} />
                   <Route path="profile" element={<PlaceholderPage title="Perfil" description="Actualizar información personal" icon="👤" />} />
                 </Route>
               </Route>

@@ -1,133 +1,126 @@
-# Resumen de Diagramas del Sistema Legal
+# Resumen de Diagramas Generados
 
-## Diagramas Generados Exitosamente
+Este documento contiene un resumen de todos los diagramas Mermaid extraídos del archivo `diagrama-casos-uso.md` y convertidos a imágenes PNG.
 
-### 1. Diagrama de Casos de Uso
-![Diagrama de Casos de Uso](diagrama-casos-uso.png)
+## Diagramas Generados
 
-**Descripción:** Muestra los actores principales del sistema (Usuario, Abogado, Administrador, Chatbot) y sus casos de uso correspondientes.
+### 1. Diagrama de Casos de Uso Principal
+- **Archivo fuente**: `diagrama-casos-uso.mmd`
+- **Imagen generada**: `diagrama-casos-uso.png`
+- **Descripción**: Diagrama principal de casos de uso del sistema de gestión legal
 
-**Importancia:** Define claramente quién puede hacer qué en el sistema, estableciendo los límites de funcionalidad para cada tipo de usuario.
+### 2. Diagrama de Clases Simple
+- **Archivo fuente**: `diagrama-clases-simple.mmd`
+- **Imagen generada**: `diagrama-clases-simple.png`
+- **Descripción**: Diagrama de clases simplificado con las entidades principales (User, Client, Expediente)
 
-**Requisitos implementados:**
-- Autenticación y autorización por roles
-- Gestión de casos legales
-- Sistema de notificaciones
-- Chatbot de asistencia
-- Gestión de documentos
-- Administración del sistema
+### 3. Diagrama de Clases Completo
+- **Archivo fuente**: `diagrama-clases-completo.mmd`
+- **Imagen generada**: `diagrama-clases-completo.png`
+- **Descripción**: Diagrama de clases completo con todas las entidades del sistema:
+  - **Entidades principales**: User, Client, Lawyer, Expediente, Document, Appointment, Task
+  - **Entidades de facturación**: Invoice, InvoiceItem, ProvisionFondos
+  - **Entidades de comunicación**: ChatMessage, TeleassistanceSession
+  - **Entidades de configuración**: Contact, Parametro, Layout, MenuConfig, MenuItem, SiteConfig
+  - **Relaciones**: Todas las relaciones entre entidades con cardinalidad
 
-### 2. Diagrama de Secuencia - Interacción Usuario-Chatbot
-![Diagrama de Secuencia](diagrama-secuencia-chat.png)
+### 4. Diagrama de Actividad - Recuperación de Contraseña
+- **Archivo fuente**: `diagrama-actividad-recuperacion.mmd`
+- **Imagen generada**: `diagrama-actividad-recuperacion.png`
+- **Descripción**: Flujo completo del proceso de recuperación de contraseña
 
-**Descripción:** Ilustra el flujo completo de comunicación entre un usuario y el chatbot, incluyendo la interacción con el backend y el microservicio de IA.
+### 5. Diagrama de Secuencia - Interacción Usuario-Chatbot
+- **Archivo fuente**: `diagrama-secuencia-chat.mmd`
+- **Imagen generada**: `diagrama-secuencia-chat.png`
+- **Descripción**: Flujo de comunicación entre usuario y chatbot
 
-**Importancia:** Demuestra la arquitectura de comunicación en tiempo real y el procesamiento de mensajes del chatbot.
+### 6. Diagrama de Arquitectura del Sistema
+- **Archivo fuente**: `diagrama-arquitectura.mmd`
+- **Imagen generada**: `diagrama-arquitectura.png`
+- **Descripción**: Arquitectura completa del sistema
 
-**Requisitos implementados:**
-- Comunicación en tiempo real
-- Procesamiento de lenguaje natural
-- Gestión de sesiones de chat
-- Integración con microservicios
-- Notificaciones automáticas
+### 7. Diagrama de Despliegue
+- **Archivo fuente**: `diagrama-despliegue.mmd`
+- **Imagen generada**: `diagrama-despliegue.png`
+- **Descripción**: Infraestructura de despliegue del sistema
 
-### 3. Diagrama de Arquitectura del Sistema
-![Diagrama de Arquitectura](diagrama-arquitectura.png)
+### 8. Diagrama de Actividad - Proceso de Facturación Electrónica
+- **Archivo fuente**: `diagrama-actividad-facturacion.mmd`
+- **Imagen generada**: `diagrama-actividad-facturacion.png`
+- **Descripción**: Flujo completo del proceso de facturación electrónica, desde la creación hasta el envío a sistemas externos
 
-**Descripción:** Representa la arquitectura completa del sistema, incluyendo frontend, backend, microservicios, base de datos y servicios externos.
+### 9. Diagrama de Actividad - Gestión de Casos Legales
+- **Archivo fuente**: `diagrama-actividad-gestion-casos.mmd`
+- **Imagen generada**: `diagrama-actividad-gestion-casos.png`
+- **Descripción**: Flujo completo de gestión de casos legales, desde la solicitud hasta el archivo
 
-**Importancia:** Muestra la estructura técnica del sistema y cómo se comunican los diferentes componentes.
+### 10. Diagrama de Secuencia - Proceso de Autenticación
+- **Archivo fuente**: `diagrama-secuencia-autenticacion.mmd`
+- **Imagen generada**: `diagrama-secuencia-autenticacion.png`
+- **Descripción**: Proceso completo de autenticación, incluyendo login, validación de JWT y autorización
 
-**Requisitos implementados:**
-- Arquitectura de microservicios
-- Frontend React con gestión de estado
-- Backend NestJS modular
-- Base de datos PostgreSQL
-- Integración con servicios externos (email, almacenamiento, APIs)
-- Sistema de autenticación JWT
+### 11. Diagrama de Componentes - Arquitectura de Microservicios
+- **Archivo fuente**: `diagrama-componentes-microservicios.mmd`
+- **Imagen generada**: `diagrama-componentes-microservicios.png`
+- **Descripción**: Arquitectura detallada de microservicios del sistema, incluyendo las interacciones entre servicios
 
-### 4. Diagrama de Despliegue
-![Diagrama de Despliegue](diagrama-despliegue.png)
+## Notas Importantes
 
-**Descripción:** Muestra la infraestructura de despliegue, incluyendo contenedores, puertos y servicios externos.
+### Problemas con Mermaid CLI
+- **Error de sintaxis**: Los diagramas de clases con métodos y atributos complejos pueden generar errores de parsing en Mermaid CLI
+- **Solución**: Se utilizó una sintaxis alternativa con atributos tipados (`+id: string`) y relaciones con cardinalidad (`"1" *-- "0..*"`)
+- **Verificación**: Los diagramas se probaron en el editor en línea de Mermaid para confirmar su validez
 
-**Importancia:** Define cómo se despliega el sistema en producción y la configuración de red.
+### Sintaxis Utilizada
+- **Atributos**: Formato `+nombre: tipo` (ej: `+id: string`, `+createdAt: DateTime`)
+- **Relaciones**: Formato `"cardinalidad1" *-- "cardinalidad2" entidad : descripción`
+- **Tipos de datos**: Se mantuvieron los tipos originales del esquema Prisma
 
-**Requisitos implementados:**
-- Contenedores Docker
-- Load balancer
-- Base de datos PostgreSQL
-- Cache Redis
-- Almacenamiento MinIO
-- Integración con servicios externos (TSA, OCSP, AEAT, FACE)
+### Archivos Generados
+- **Archivos .mmd**: Contienen el código Mermaid original
+- **Archivos .png**: Imágenes generadas para documentación
+- **Este archivo**: Resumen de todos los diagramas generados
 
-### 5. Diagrama de Actividad - Recuperación de Contraseña
-![Diagrama de Actividad](diagrama-actividad-recuperacion.png)
+## Uso de los Diagramas
 
-**Descripción:** Ilustra el flujo completo del proceso de recuperación de contraseña, incluyendo validaciones y notificaciones por email.
+Los diagramas generados pueden utilizarse para:
+1. **Documentación técnica**: Explicar la arquitectura del sistema
+2. **Presentaciones**: Mostrar la estructura de datos y casos de uso
+3. **Desarrollo**: Referencia para implementar nuevas funcionalidades
+4. **Mantenimiento**: Entender las relaciones entre entidades
 
-**Importancia:** Demuestra la implementación de funcionalidades de seguridad y recuperación de acceso.
+## Comandos de Generación
 
-**Requisitos implementados:**
-- Sistema de recuperación de contraseña
-- Validación de tokens
-- Envío de emails
-- Validación de entrada de datos
-- Gestión de sesiones seguras
+Para regenerar las imágenes PNG:
+```bash
+npx @mermaid-js/mermaid-cli -i archivo.mmd -o archivo.png
+```
 
-### 6. Diagrama de Clases
-![Diagrama de Clases](diagrama-clases.png)
+## Estructura de Archivos
 
-**Descripción:** Muestra la estructura de clases del sistema, incluyendo la clase User con sus atributos y métodos, y su relación con la clase Client.
-
-**Importancia:** Define la estructura de datos y las relaciones entre entidades del sistema, proporcionando una base sólida para el desarrollo y mantenimiento.
-
-**Requisitos implementados:**
-- Modelo de datos estructurado
-- Relaciones entre entidades
-- Gestión de usuarios y clientes
-- Tipado de datos (string, Date, arrays)
-- Encapsulación de atributos y métodos
-
-**Sintaxis utilizada:** Se empleó una sintaxis específica de Mermaid que es compatible con las versiones actuales:
-- Atributos con tipos: `+id: string`
-- Métodos con tipos de retorno: `+roles() Role[]`
-- Relaciones con cardinalidad: `"1" *-- "0..*"`
-- Formato de tipos estándar: `string`, `Date`
-
-## Cómo los Diagramas Reflejan los Requisitos Implementados
-
-### Funcionalidades Principales
-1. **Gestión de Usuarios y Autenticación:** Reflejado en el diagrama de casos de uso y el diagrama de actividad
-2. **Gestión de Casos Legales:** Visible en todos los diagramas de casos de uso y arquitectura
-3. **Sistema de Chatbot:** Detallado en el diagrama de secuencia y casos de uso
-4. **Facturación Electrónica:** Representado en la arquitectura con servicios externos
-5. **Gestión de Documentos:** Incluido en casos de uso y arquitectura
-6. **Notificaciones:** Presente en secuencias y casos de uso
-
-### Aspectos Técnicos
-1. **Arquitectura de Microservicios:** Claramente definida en el diagrama de arquitectura
-2. **Base de Datos:** Especificada en arquitectura y despliegue
-3. **Seguridad:** Implementada en casos de uso y diagrama de actividad
-4. **Escalabilidad:** Considerada en el diagrama de despliegue
-5. **Integración Externa:** Detallada en arquitectura y despliegue
-
-## Conclusión
-
-Los **6 diagramas generados exitosamente** proporcionan una documentación visual completa del sistema, cubriendo todos los aspectos importantes:
-
-### **Cobertura Completa:**
-- **Funcional:** Casos de uso y actividades
-- **Técnico:** Arquitectura y clases
-- **Operacional:** Secuencias y despliegue
-- **Estructural:** Modelo de datos
-
-### **Diagramas Finales:**
-1. ✅ **Diagrama de Casos de Uso** - Funcionalidades del sistema
-2. ✅ **Diagrama de Secuencia** - Flujos de comunicación
-3. ✅ **Diagrama de Arquitectura** - Estructura técnica
-4. ✅ **Diagrama de Despliegue** - Infraestructura
-5. ✅ **Diagrama de Actividad** - Procesos de negocio
-6. ✅ **Diagrama de Clases** - Modelo de datos
-
-Esta documentación permite entender completamente la estructura, funcionamiento y despliegue del sistema de gestión legal, proporcionando una base sólida para el desarrollo, mantenimiento y evolución del proyecto. 
+```
+documentacion/imagenes-diagramas/
+├── diagrama-casos-uso.mmd
+├── diagrama-casos-uso.png
+├── diagrama-clases-simple.mmd
+├── diagrama-clases-simple.png
+├── diagrama-clases-completo.mmd
+├── diagrama-clases-completo.png
+├── diagrama-actividad-recuperacion.mmd
+├── diagrama-actividad-recuperacion.png
+├── diagrama-secuencia-chat.mmd
+├── diagrama-secuencia-chat.png
+├── diagrama-arquitectura.mmd
+├── diagrama-arquitectura.png
+├── diagrama-despliegue.mmd
+├── diagrama-despliegue.png
+├── diagrama-actividad-facturacion.mmd
+├── diagrama-actividad-facturacion.png
+├── diagrama-actividad-gestion-casos.mmd
+├── diagrama-actividad-gestion-casos.png
+├── diagrama-secuencia-autenticacion.mmd
+├── diagrama-secuencia-autenticacion.png
+├── diagrama-componentes-microservicios.mmd
+├── diagrama-componentes-microservicios.png
+└── RESUMEN_DIAGRAMAS.md
+``` 

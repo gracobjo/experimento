@@ -28,6 +28,8 @@ export class RolesGuard implements CanActivate {
       return false;
     }
 
+    this.logger.warn(`RolesGuard DEBUG: requiredRoles = ${JSON.stringify(requiredRoles)} (${requiredRoles.map(r => typeof r).join(', ')}), user.role = ${user.role} (${typeof user.role})`);
+
     const hasPermission = requiredRoles.includes(user.role);
 
     if (!hasPermission) {

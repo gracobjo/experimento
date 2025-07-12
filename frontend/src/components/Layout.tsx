@@ -14,11 +14,16 @@ interface ContactParam {
   tipo: string;
 }
 
+interface UnreadCount {
+  count: number;
+}
+
 const Layout = () => {
   const { user, logout } = useAuth();
   const [openBilling, setOpenBilling] = useState(false);
   const [contactParams, setContactParams] = useState<ContactParam[]>([]);
   const [copyrightText, setCopyrightText] = useState('© 2024 Despacho Legal. Todos los derechos reservados.');
+  const [unreadCount, setUnreadCount] = useState<number>(0);
 
   const isAdmin = user?.role === 'ADMIN';
   const isLawyer = user?.role === 'ABOGADO';
@@ -84,16 +89,23 @@ const Layout = () => {
       );
     }
 
+    // Si es el ítem de Chat, mostrar el badge de mensajes no leídos
+    const isChat = item.url && item.url.includes('/chat');
     return (
       <Link
         key={item.id || item.label}
         to={item.url}
-        className="hover:text-blue-200 flex items-center"
+        className="hover:text-blue-200 flex items-center relative"
         target={item.isExternal ? '_blank' : undefined}
         rel={item.isExternal ? 'noopener noreferrer' : undefined}
       >
         {item.icon && <span className="mr-1">{item.icon}</span>}
         {item.label}
+        {isChat && unreadCount > 0 && (
+          <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-600 text-white absolute -top-2 -right-4">
+            {unreadCount}
+          </span>
+        )}
       </Link>
     );
   };
@@ -121,7 +133,7 @@ const Layout = () => {
         { label: 'Reportes', url: '/lawyer/reports', icon: '📊' },
         { 
           label: 'Facturación', 
-          url: '#', 
+          url: '/lawyer/facturacion', // antes era '#'
           icon: '🧾',
           children: [
             { label: 'Provisión de Fondos', url: '/lawyer/provisiones', icon: '💰' },
@@ -166,6 +178,23 @@ const Layout = () => {
 
     fetchContactParams();
   }, []);
+
+  // Consultar el total de mensajes no leídos
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!user) return;
+        const res = await axios.get('/chat/unread-count', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setUnreadCount(res.data.count || 0);
+      } catch {
+        setUnreadCount(0);
+      }
+    };
+    if (user) fetchUnreadCount();
+  }, [user]);
 
   // Función para obtener valor de parámetro por clave
   const getParamValue = (clave: string): string => {

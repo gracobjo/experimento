@@ -145,4 +145,17 @@ export class AuthService {
 
     return { message: 'Contraseña actualizada correctamente' };
   }
+
+  generateToken(payload: any): string {
+    return this.jwtService.sign(payload);
+  }
+
+  async validateUserByEmail(email: string): Promise<any> {
+    const user = await this.usersService.findByEmail(email);
+    if (user) {
+      const { password: _, ...result } = user;
+      return result;
+    }
+    return null;
+  }
 } 

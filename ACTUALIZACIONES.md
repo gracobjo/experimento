@@ -256,3 +256,144 @@ git push origin main
 - ✅ **Monitoreo** de despliegues
 
 ¡Con este proceso, mantener tu aplicación actualizada será muy sencillo! 🚀 
+
+## 2025-07-11: Permitir acceso de CLIENTE a endpoints de facturas
+
+### Problema detectado
+- El endpoint `/api/invoices/my` devolvía 403 Forbidden para usuarios con rol CLIENTE, aunque el decorador @Roles parecía correcto en el código fuente.
+- El log mostraba: `RolesGuard DEBUG: requiredRoles = ["ADMIN","ABOGADO"], user.role = CLIENTE`.
+
+### Pasos de revisión y diagnóstico
+1. **Revisión de decoradores @Roles**
+   - Se revisaron todos los endpoints del controlador `invoices.controller.ts` para comprobar los roles permitidos.
+   - Se detectó que muchos endpoints solo permitían `ADMIN` y `ABOGADO`, y solo algunos incluían `CLIENTE`.
+2. **Verificación de procesos y build**
+   - Se mataron todos los procesos Node.js para evitar instancias antiguas.
+   - Se eliminó y regeneró la carpeta `dist/` para asegurar que el build reflejara los cambios.
+   - Se arrancó el backend usando `nest start` directamente, ya que no había script npm start definido.
+3. **Pruebas automatizadas**
+   - Se utilizó el script `get-client-invoices.ps1` para probar el acceso al endpoint `/api/invoices/my` con un usuario CLIENTE.
+   - Se revisó el log del backend para confirmar los roles evaluados por el RolesGuard.
+4. **Revisión de posibles decoradores a nivel de clase**
+   - Se comprobó que no hubiera un decorador @Roles restrictivo a nivel de clase que sobrescribiera los de método.
+5. **Revisión de la implementación de RolesGuard**
+   - Se verificó que el RolesGuard leyera correctamente los roles a nivel de método.
+
+### Cambios realizados
+- Se modificaron **todos los decoradores @Roles** en `invoices.controller.ts` para incluir también el rol `CLIENTE` en todos los endpoints relevantes.
+- Se recompiló y reinició el backend para aplicar los cambios.
+
+### Resultado
+- El log del backend muestra ahora:
+  ```
+  RolesGuard DEBUG: requiredRoles = ["CLIENTE","ADMIN","ABOGADO"], user.role = CLIENTE
+  Access granted: User cliente1@test.com (CLIENTE) accessed GET /api/invoices/my
+  ```
+- El script de prueba devuelve acceso correcto para CLIENTE.
+
+### Notas
+- Se recomienda revisar otros controladores si se desea permitir acceso a CLIENTE en más endpoints.
+- Documentar siempre los cambios de roles y acceso en endpoints críticos. 
+
+---
+
+### Instrucciones útiles de PowerShell para desarrollo y resolución de problemas
+
+#### 1. **Matar procesos que usan el puerto 3000**
+
+Si el backend no arranca porque el puerto 3000 está ocupado, ejecuta en PowerShell:
+
+```powershell
+# Ver los procesos que usan el puerto 3000
+netstat -ano | findstr :3000
+
+# Matar automáticamente todos los procesos que escuchan en el puerto 3000
+Get-Process -Id (Get-NetTCPConnection -LocalPort 3000 -State Listen).OwningProcess | Stop-Process -Force
+
+# O, para asegurarte de matar todos los procesos relacionados con el puerto 3000 (en cualquier estado):
+Get-NetTCPConnection -LocalPort 3000 | Select-Object -ExpandProperty OwningProcess | Get-Process | Stop-Process -Force
+```
+
+#### 2. **Compilar y arrancar el backend**
+
+En PowerShell, ejecuta los comandos por separado (no uses `&&`):
+
+```powershell
+npm run build
+npm run start
+```
+
+#### 3. **Ejecutar scripts de comprobación**
+
+Por ejemplo, para lanzar un script de PowerShell:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File chatbot/get-clients-with-invoices.ps1
+```
+
+#### 4. **Notas**
+- En PowerShell, el operador `&&` no funciona como en bash. Ejecuta los comandos uno a uno.
+- Si tienes dudas sobre qué proceso está usando un puerto, puedes buscar el PID con `netstat` y matarlo con `Stop-Process -Id <PID> -Force`.
+
+--- 
+
+---
+
+### Ejemplo y explicación de scripts de PowerShell para automatización de pruebas y gestión
+
+Los scripts de PowerShell permiten automatizar tareas repetitivas contra la API, como crear usuarios, facturas, obtener datos, etc. Aquí tienes ejemplos y explicación de su estructura:
+
+#### 1. **Estructura básica de un script de PowerShell para la API**
+
+- **Login y obtención de token:**
+  ```powershell
+  $email = "admin@test.com"
+  $password = "admin123"
+  $login = Invoke-RestMethod -Uri 'http://localhost:3000/api/auth/login' -Method Post -Body (@{ email = $email; password = $password } | ConvertTo-Json) -ContentType 'application/json'
+  $token = $login.token
+  ```
+- **Llamada a un endpoint protegido:**
+  ```powershell
+  $response = Invoke-RestMethod -Uri 'http://localhost:3000/api/invoices' -Headers @{ Authorization = "Bearer $token" }
+  $response | Format-Table
+  ```
+
+#### 2. **Crear clientes automáticamente**
+
+```powershell
+# Crear un cliente
+$body = @{ name = "Cliente Demo"; email = "cliente.demo@test.com"; password = "demo123"; role = "CLIENTE" } | ConvertTo-Json
+Invoke-RestMethod -Uri 'http://localhost:3000/api/users' -Method Post -Body $body -ContentType 'application/json'
+```
+
+#### 3. **Crear facturas automáticamente**
+
+```powershell
+# Crear una factura (requiere token de ABOGADO o ADMIN)
+$invoiceBody = @{ 
+  tipoFactura = "F"; receptorId = "<ID_CLIENTE>"; tipoIVA = 21; regimenIvaEmisor = "General"; claveOperacion = "01"; metodoPago = "TRANSFERENCIA"; fechaOperacion = "2025-07-11"; items = @(@{ description = "minuta"; quantity = 1; unitPrice = 1000; total = 1000 })
+} | ConvertTo-Json
+Invoke-RestMethod -Uri 'http://localhost:3000/api/invoices' -Method Post -Headers @{ Authorization = "Bearer $token" } -Body $invoiceBody -ContentType 'application/json'
+```
+
+#### 4. **Obtener facturas de un cliente**
+
+```powershell
+Invoke-RestMethod -Uri 'http://localhost:3000/api/invoices/by-client/<ID_CLIENTE>' -Headers @{ Authorization = "Bearer $token" }
+```
+
+#### 5. **Obtener todos los clientes con facturas**
+
+```powershell
+Invoke-RestMethod -Uri 'http://localhost:3000/api/invoices/clients-with-invoices' -Headers @{ Authorization = "Bearer $token" } | Format-Table clientId, name, email, facturaCount
+```
+
+#### 6. **Notas sobre los scripts**
+- Todos los scripts pueden guardarse como `.ps1` y ejecutarse con:
+  ```powershell
+  powershell -ExecutionPolicy Bypass -File nombre-del-script.ps1
+  ```
+- Es importante usar el token adecuado según el rol requerido por el endpoint.
+- Puedes combinar pasos (login, crear, consultar) en un solo script para automatizar flujos completos de prueba.
+
+--- 

@@ -13,4 +13,20 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response) {
+      if (error.response.status === 401) {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+        alert('Sesión expirada o no autorizada. Por favor, inicia sesión de nuevo.');
+      } else if (error.response.status === 429) {
+        alert('Demasiados intentos de autenticación. Espera unos minutos antes de volver a intentarlo.');
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api; 

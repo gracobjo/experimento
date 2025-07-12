@@ -55,9 +55,9 @@ const TeleassistanceRequestPage: React.FC = () => {
       setLoading(true);
       
       const [assistantsResponse, toolsResponse, issuesResponse] = await Promise.all([
-        axios.get('/api/teleassistance/available-assistants'),
-        axios.get('/api/teleassistance/remote-tools'),
-        axios.get('/api/teleassistance/common-issues')
+        axios.get('/teleassistance/available-assistants'),
+        axios.get('/teleassistance/remote-tools'),
+        axios.get('/teleassistance/common-issues')
       ]);
 
       setAssistants(assistantsResponse.data);

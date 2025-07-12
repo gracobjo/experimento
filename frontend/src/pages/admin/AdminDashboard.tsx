@@ -79,8 +79,10 @@ const AdminDashboard = () => {
                 Bienvenido, {user?.name}{user?.email && ` (${user.email})`}
               </h1>
             </div>
-            <div className="text-sm text-gray-500">
-              Última actualización: {new Date().toLocaleString()}
+            <div className="flex items-center gap-4">
+              <div className="text-sm text-gray-500">
+                Última actualización: {new Date().toLocaleString()}
+              </div>
             </div>
           </div>
         </div>
@@ -309,6 +311,23 @@ const AdminDashboard = () => {
                 <div className="ml-3">
                   <p className="text-sm font-medium text-gray-900">Gestionar Documentos</p>
                   <p className="text-xs text-gray-500">Ver y gestionar archivos</p>
+                </div>
+              </Link>
+
+              <Link
+                to="/admin/invoices"
+                className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-emerald-600 rounded-md flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-gray-900">Gestionar Facturas</p>
+                  <p className="text-xs text-gray-500">Ver y gestionar facturas</p>
                 </div>
               </Link>
 

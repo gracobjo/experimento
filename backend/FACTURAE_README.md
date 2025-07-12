@@ -30,6 +30,29 @@ Este módulo implementa funcionalidades avanzadas de facturación electrónica s
 - **Gestión de sellos de tiempo** TSA
 - **Información de certificados** detallada
 
+## 🆕 Funcionalidades recientes
+
+### Filtro automático de facturas por rol
+- El endpoint `GET /invoices` ahora filtra automáticamente las facturas según el usuario autenticado:
+  - **ADMIN:** ve todas las facturas.
+  - **ABOGADO:** solo ve facturas donde es emisor.
+  - **CLIENTE:** solo ve facturas donde es receptor.
+
+### Inclusión de QR en todas las facturas
+- Todas las respuestas de facturas (incluyendo listados y detalle) incluyen el campo `qrData`.
+- El QR contiene los datos mínimos requeridos para verificación:
+  - NIF del emisor (email)
+  - Número de factura
+  - Fecha de factura (YYYY-MM-DD)
+  - Importe total
+- Formato del campo:
+  ```
+  NIF:<email emisor>|NUM:<numeroFactura>|FEC:<fechaFactura YYYY-MM-DD>|IMP:<importeTotal>
+  ```
+- El frontend muestra el QR en la vista de detalle de factura y puede usarlo para validación visual o escaneo.
+
+---
+
 ## 📁 Estructura de Archivos
 
 ```

@@ -6,7 +6,8 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Iniciando seed de la base de datos...');
 
-  // Limpiar tablas de facturas y provisiones de fondos
+  // Limpiar tablas dependientes primero
+  await prisma.invoiceItem.deleteMany();
   await prisma.provisionFondos.deleteMany();
   await prisma.invoice.deleteMany();
 

@@ -37,7 +37,7 @@ const ReportsPage = () => {
       try {
         setLoading(true);
         const token = localStorage.getItem('token');
-        const response = await axios.get('/api/lawyer/reports', {
+        const response = await axios.get('/lawyer/reports', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setReportsData(response.data);
@@ -138,7 +138,7 @@ const ReportsPage = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">Total Tareas</p>
-                <p className="text-2xl font-semibold text-gray-900">{reportsData.tasks.total}</p>
+                <p className="text-2xl font-semibold text-gray-900">{reportsData.tasks?.total ?? 0}</p>
               </div>
             </div>
           </div>
@@ -154,7 +154,7 @@ const ReportsPage = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">Total Casos</p>
-                <p className="text-2xl font-semibold text-gray-900">{reportsData.cases.total}</p>
+                <p className="text-2xl font-semibold text-gray-900">{reportsData.cases?.total ?? 0}</p>
               </div>
             </div>
           </div>
@@ -170,7 +170,7 @@ const ReportsPage = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">Tareas Vencidas</p>
-                <p className="text-2xl font-semibold text-gray-900">{reportsData.tasks.overdue}</p>
+                <p className="text-2xl font-semibold text-gray-900">{reportsData.tasks?.overdue ?? 0}</p>
               </div>
             </div>
           </div>
@@ -186,7 +186,7 @@ const ReportsPage = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">Próximas Citas</p>
-                <p className="text-2xl font-semibold text-gray-900">{reportsData.appointments.upcoming}</p>
+                <p className="text-2xl font-semibold text-gray-900">{reportsData.appointments?.upcoming ?? 0}</p>
               </div>
             </div>
           </div>
@@ -198,7 +198,7 @@ const ReportsPage = () => {
           <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Estado de Tareas</h3>
             <div className="space-y-3">
-              {Object.entries(reportsData.tasks.byStatus).map(([status, count]) => (
+              {Object.entries(reportsData.tasks?.byStatus ?? {}).map(([status, count]) => (
                 <div key={status} className="flex items-center justify-between">
                   <div className="flex items-center">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(status)}`}>
@@ -213,8 +213,8 @@ const ReportsPage = () => {
             {/* Gráfico de barras simple */}
             <div className="mt-6">
               <div className="flex items-end space-x-2 h-32">
-                {Object.entries(reportsData.tasks.byStatus).map(([status, count]) => {
-                  const maxCount = Math.max(...Object.values(reportsData.tasks.byStatus));
+                {Object.entries(reportsData.tasks?.byStatus ?? {}).map(([status, count]) => {
+                  const maxCount = Math.max(...Object.values(reportsData.tasks?.byStatus ?? {}));
                   const height = maxCount > 0 ? (count / maxCount) * 100 : 0;
                   return (
                     <div key={status} className="flex-1 flex flex-col items-center">
@@ -234,7 +234,7 @@ const ReportsPage = () => {
           <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Estado de Casos</h3>
             <div className="space-y-3">
-              {Object.entries(reportsData.cases.byStatus).map(([status, count]) => (
+              {Object.entries(reportsData.cases?.byStatus ?? {}).map(([status, count]) => (
                 <div key={status} className="flex items-center justify-between">
                   <div className="flex items-center">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(status)}`}>
@@ -251,11 +251,11 @@ const ReportsPage = () => {
               <div className="flex justify-center">
                 <div className="relative w-32 h-32">
                   {(() => {
-                    const total = Object.values(reportsData.cases.byStatus).reduce((a, b) => a + b, 0);
+                    const total = Object.values(reportsData.cases?.byStatus ?? {}).reduce((a, b) => a + b, 0);
                     let currentAngle = 0;
                     const colors = ['#10B981', '#3B82F6', '#6B7280'];
                     
-                    return Object.entries(reportsData.cases.byStatus).map(([status, count], index) => {
+                    return Object.entries(reportsData.cases?.byStatus ?? {}).map(([status, count], index) => {
                       if (total === 0) return null;
                       const percentage = (count / total) * 100;
                       const angle = (percentage / 100) * 360;
@@ -277,7 +277,7 @@ const ReportsPage = () => {
                 </div>
               </div>
               <div className="mt-4 flex justify-center space-x-4">
-                {Object.entries(reportsData.cases.byStatus).map(([status, count], index) => (
+                {Object.entries(reportsData.cases?.byStatus ?? {}).map(([status, count], index) => (
                   <div key={status} className="flex items-center">
                     <div 
                       className="w-3 h-3 rounded-full mr-2"

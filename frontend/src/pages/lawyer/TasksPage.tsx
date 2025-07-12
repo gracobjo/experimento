@@ -109,16 +109,16 @@ const TasksPage = () => {
         const token = localStorage.getItem('token');
         
         const [tasksResponse, statsResponse, expedientesResponse, clientsResponse] = await Promise.all([
-          axios.get('/api/tasks', {
+          axios.get('/tasks', {
             headers: { Authorization: `Bearer ${token}` }
           }),
-          axios.get('/api/tasks/stats', {
+          axios.get('/tasks/stats', {
             headers: { Authorization: `Bearer ${token}` }
           }),
-          axios.get('/api/cases', {
+          axios.get('/cases', {
             headers: { Authorization: `Bearer ${token}` }
           }),
-          axios.get('/api/users/clients', {
+          axios.get('/users/clients', {
             headers: { Authorization: `Bearer ${token}` }
           })
         ]);
@@ -224,7 +224,7 @@ const TasksPage = () => {
         assignedTo: createForm.assignedTo || undefined,
       };
 
-      const response = await axios.post('/api/tasks', requestData, {
+      const response = await axios.post('/tasks', requestData, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -239,7 +239,7 @@ const TasksPage = () => {
   const handleStatusChange = async (taskId: string, newStatus: string) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.patch(`/api/tasks/${taskId}/status`, 
+      await axios.patch(`/tasks/${taskId}/status`, 
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -263,7 +263,7 @@ const TasksPage = () => {
 
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`/api/tasks/${taskId}`, {
+      await axios.delete(`/tasks/${taskId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 

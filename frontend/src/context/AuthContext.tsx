@@ -65,14 +65,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const checkAuth = async () => {
     try {
       const token = localStorage.getItem('token');
+      console.log('checkAuth - Token exists:', !!token);
+      
       if (token) {
         const response = await api.get('/auth/me', {
           headers: { Authorization: `Bearer ${token}` }
         });
         
+        console.log('checkAuth - Response data:', response.data);
+        
         // Verifica la estructura del usuario
         if (response.data && response.data.role) {
           setUser(response.data);
+          console.log('checkAuth - User set:', response.data);
         } else {
           throw new Error('Datos de usuario incompletos');
         }
@@ -114,6 +119,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = () => {
     localStorage.removeItem('token');
     setUser(null);
+    window.location.href = '/login'; // Redirige al login tras logout
   };
 
   const register = async (userData: { email: string; password: string; name: string; role: string }) => {

@@ -58,7 +58,7 @@ const TeleassistancePage: React.FC = () => {
   const loadSessions = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/teleassistance/sessions/user/' + user?.id);
+      const response = await axios.get('/teleassistance/sessions/user/' + user?.id);
       setSessions(response.data);
     } catch (error) {
       console.error('Error loading sessions:', error);

@@ -136,16 +136,42 @@ const ChatPage = () => {
       try {
         setLoading(true);
         const token = localStorage.getItem('token');
+        console.log('Token from localStorage:', token ? 'Token exists' : 'No token found');
+        console.log('User from context:', user);
+        
+        if (!token || !user) {
+          console.error('No token or user found');
+          setError('Usuario no autenticado');
+          setConversations([]);
+          setLawyers([]);
+          return;
+        }
+        
         const [lawyersRes, conversationsRes] = await Promise.all([
           axios.get('/api/users/lawyers', { headers: { Authorization: `Bearer ${token}` } }),
           axios.get('/api/chat/conversations', { headers: { Authorization: `Bearer ${token}` } })
         ]);
-        setLawyers(lawyersRes.data);
-        setConversations(conversationsRes.data);
+        
+        console.log('Lawyers response:', lawyersRes.data);
+        console.log('Lawyers response type:', typeof lawyersRes.data);
+        console.log('Lawyers response isArray:', Array.isArray(lawyersRes.data));
+        console.log('Lawyers response status:', lawyersRes.status);
+        
+        console.log('Conversations response:', conversationsRes.data);
+        console.log('Conversations response type:', typeof conversationsRes.data);
+        console.log('Conversations response isArray:', Array.isArray(conversationsRes.data));
+        console.log('Conversations response status:', conversationsRes.status);
+        console.log('Conversations response headers:', conversationsRes.headers);
+        
+        setLawyers(Array.isArray(lawyersRes.data) ? lawyersRes.data : []);
+        setConversations(Array.isArray(conversationsRes.data) ? conversationsRes.data : []);
         setError(null);
       } catch (err: any) {
         console.error('Error fetching data:', err);
         setError('Error al cargar los datos');
+        // Asegurar que conversations sea un array incluso en caso de error
+        setConversations([]);
+        setLawyers([]);
       } finally {
         setLoading(false);
       }
@@ -291,7 +317,7 @@ const ChatPage = () => {
             <div className="w-1/3 border-r bg-gray-50">
               <div className="p-4 border-b">
                 <h2 className="font-medium text-gray-900 mb-3">Conversaciones</h2>
-                {conversations.length === 0 ? (
+                {!Array.isArray(conversations) || conversations.length === 0 ? (
                   <p className="text-sm text-gray-500">No hay conversaciones activas</p>
                 ) : (
                   <div className="space-y-2">
@@ -373,7 +399,7 @@ const ChatPage = () => {
                         <div className="relative">
                           <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
                             <span className="text-white text-sm font-medium">
-                              {getAvatarInitial(conversations.find(c => c.userId === selectedConversation)?.userName || 'A')}
+                              {getAvatarInitial(Array.isArray(conversations) ? conversations.find(c => c.userId === selectedConversation)?.userName || 'A' : 'A')}
                             </span>
                           </div>
                           {isUserOnline(selectedConversation) && (
@@ -382,7 +408,7 @@ const ChatPage = () => {
                         </div>
                         <div className="ml-3">
                           <p className="font-medium text-gray-900">
-                            {conversations.find(c => c.userId === selectedConversation)?.userName || 'Abogado'}
+                            {Array.isArray(conversations) ? conversations.find(c => c.userId === selectedConversation)?.userName || 'Abogado' : 'Abogado'}
                           </p>
                           <p className="text-sm text-gray-500">
                             {isUserOnline(selectedConversation) ? 'En línea' : 'Desconectado'}

@@ -65,13 +65,13 @@ const DocumentsPage = () => {
         const token = localStorage.getItem('token');
         
         const [documentsResponse, statsResponse, expedientesResponse] = await Promise.all([
-          axios.get('/api/documents', {
+          axios.get('/documents', {
             headers: { Authorization: `Bearer ${token}` }
           }),
-          axios.get('/api/documents/stats', {
+          axios.get('/documents/stats', {
             headers: { Authorization: `Bearer ${token}` }
           }),
-          axios.get('/api/cases', {
+          axios.get('/cases', {
             headers: { Authorization: `Bearer ${token}` }
           })
         ]);
@@ -167,7 +167,7 @@ const DocumentsPage = () => {
           formData.append('description', uploadForm.description);
         }
 
-        return axios.post('/api/documents/upload', formData, {
+        return axios.post('/documents/upload', formData, {
           headers: { 
             Authorization: `Bearer ${token}`,
             'Content-Type': 'multipart/form-data'
@@ -181,7 +181,7 @@ const DocumentsPage = () => {
 
       // Recargar documentos
       console.log('Recargando documentos...');
-      const response = await axios.get('/api/documents', {
+      const response = await axios.get('/documents', {
         headers: { Authorization: `Bearer ${token}` }
       });
       console.log('Documentos cargados:', response.data);
@@ -216,7 +216,7 @@ const DocumentsPage = () => {
 
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`/api/documents/${documentId}`, {
+      await axios.delete(`/documents/${documentId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 

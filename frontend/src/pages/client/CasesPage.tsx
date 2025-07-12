@@ -24,6 +24,15 @@ interface Case {
   }[];
 }
 
+interface Conversation {
+  userId: string;
+  userName: string;
+  userEmail: string;
+  lastMessage: string;
+  lastMessageTime: string;
+  unreadCount: number;
+}
+
 const ClientCasesPage = () => {
   const [cases, setCases] = useState<Case[]>([]);
   const [filteredCases, setFilteredCases] = useState<Case[]>([]);
@@ -32,6 +41,14 @@ const ClientCasesPage = () => {
   const [statusFilter, setStatusFilter] = useState<string>('todos');
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  const [showModal, setShowModal] = useState(false);
+  const [modalCase, setModalCase] = useState<Case | null>(null);
+  const [message, setMessage] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [sentCases, setSentCases] = useState<{ [caseId: string]: boolean }>({});
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [lastMessageStatus, setLastMessageStatus] = useState<{ [lawyerId: string]: { read: boolean|null, lastMessage: string|null } }>({});
 
   // Cargar expedientes del cliente
   useEffect(() => {
@@ -56,6 +73,50 @@ const ClientCasesPage = () => {
 
     fetchCases();
   }, []);
+
+  // Cargar conversaciones de chat para saber el estado de lectura
+  useEffect(() => {
+    const fetchConversations = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await axios.get('/chat/conversations', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setConversations(res.data);
+      } catch (err) {
+        // No mostrar error aquí
+      }
+    };
+    fetchConversations();
+  }, []);
+
+  // Consultar el estado de lectura del último mensaje enviado por el cliente a cada abogado
+  useEffect(() => {
+    const fetchLastMessageStatus = async () => {
+      const token = localStorage.getItem('token');
+      const statusMap: { [lawyerId: string]: { read: boolean|null, lastMessage: string|null } } = {};
+      for (const caseItem of cases) {
+        try {
+          // Obtener los mensajes con el abogado
+          const res = await axios.get(`/chat/messages/${caseItem.lawyer.id}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const messages = res.data;
+          // Buscar el último mensaje enviado por el cliente
+          const lastSent = [...messages].reverse().find((msg: any) => msg.isOwnMessage);
+          if (lastSent) {
+            statusMap[caseItem.lawyer.id] = { read: !!lastSent.read, lastMessage: lastSent.content };
+          } else {
+            statusMap[caseItem.lawyer.id] = { read: null, lastMessage: null };
+          }
+        } catch {
+          statusMap[caseItem.lawyer.id] = { read: null, lastMessage: null };
+        }
+      }
+      setLastMessageStatus(statusMap);
+    };
+    if (cases.length > 0) fetchLastMessageStatus();
+  }, [cases]);
 
   // Filtrado de casos
   useEffect(() => {
@@ -93,6 +154,34 @@ const ClientCasesPage = () => {
       case 'EN_PROCESO': return 'En Proceso';
       case 'CERRADO': return 'Cerrado';
       default: return status;
+    }
+  };
+
+  const handleContactClick = (caseItem: Case) => {
+    setModalCase(caseItem);
+    setMessage('');
+    setSendError(null);
+    setShowModal(true);
+  };
+
+  const handleSendMessage = async () => {
+    if (!message.trim() || !modalCase) return;
+    setSending(true);
+    setSendError(null);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post('/api/chat/messages', {
+        content: message,
+        receiverId: modalCase.lawyer.id,
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setSentCases((prev) => ({ ...prev, [modalCase.id]: true }));
+      setShowModal(false);
+    } catch (err: any) {
+      setSendError('Error al enviar el mensaje');
+    } finally {
+      setSending(false);
     }
   };
 
@@ -219,21 +308,65 @@ const ClientCasesPage = () => {
                   </div>
                 </div>
                 
-                <div className="flex space-x-2">
+                <div className="flex space-x-2 items-center">
                   <Link
                     to={`/client/cases/${caseItem.id}`}
                     className="flex-1 px-3 py-2 bg-blue-600 text-white text-center text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   >
                     Ver Detalles
                   </Link>
-                  <button className="px-3 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
-                    Contactar
+                  <button
+                    className={`px-3 py-2 text-white text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${sentCases[caseItem.id] ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
+                    onClick={() => handleContactClick(caseItem)}
+                    disabled={!!sentCases[caseItem.id]}
+                  >
+                    {sentCases[caseItem.id] ? 'Mensaje enviado' : 'Contactar'}
                   </button>
+                  {/* Estado de lectura del último mensaje */}
+                  {lastMessageStatus[caseItem.lawyer.id] && lastMessageStatus[caseItem.lawyer.id].lastMessage && (
+                    <span className={`ml-2 text-xs font-semibold ${lastMessageStatus[caseItem.lawyer.id].read ? 'text-green-600' : 'text-yellow-600'}`}>
+                      {lastMessageStatus[caseItem.lawyer.id].read ? 'Leído' : 'No leído'}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
           ))}
         </div>
+
+        {/* Modal de mensaje */}
+        {showModal && modalCase && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+            <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+              <h2 className="text-lg font-semibold mb-4">Contactar a {modalCase.lawyer.name}</h2>
+              <textarea
+                className="w-full border border-gray-300 rounded-md p-2 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                rows={4}
+                placeholder="Escribe tu mensaje..."
+                value={message}
+                onChange={e => setMessage(e.target.value)}
+                disabled={sending}
+              />
+              {sendError && <div className="text-red-600 mb-2">{sendError}</div>}
+              <div className="flex justify-end space-x-2">
+                <button
+                  className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+                  onClick={() => setShowModal(false)}
+                  disabled={sending}
+                >
+                  Cancelar
+                </button>
+                <button
+                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                  onClick={handleSendMessage}
+                  disabled={sending || !message.trim()}
+                >
+                  {sending ? 'Enviando...' : 'Enviar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {filteredCases.length === 0 && (
           <div className="text-center py-12">

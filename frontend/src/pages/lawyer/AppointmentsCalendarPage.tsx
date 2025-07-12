@@ -40,7 +40,7 @@ const AppointmentsCalendarPage = () => {
       try {
         setLoading(true);
         const token = localStorage.getItem('token');
-        const response = await axios.get('/api/appointments', {
+        const response = await axios.get('/appointments', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setAppointments(response.data);

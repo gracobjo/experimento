@@ -92,6 +92,12 @@ Ahora puedes probar todos los endpoints que requieren autenticación.
 - `POST /api/users` - Crear usuario
 - `PATCH /api/users/:id` - Actualizar usuario
 - `DELETE /api/users/:id` - Eliminar usuario
+- `GET /api/users/clients` - Obtener todos los clientes
+- `GET /api/users/clients/my` - Mis clientes (abogado)
+- `GET /api/users/clients/stats` - Estadísticas de clientes
+- `GET /api/users/clients/report` - Reporte de clientes
+- `GET /api/users/clients/profile` - Mi perfil de cliente
+- `GET /api/users/lawyers` - Obtener todos los abogados
 
 ### 📋 Casos (cases)
 - `GET /api/cases` - Listar casos
@@ -101,6 +107,11 @@ Ahora puedes probar todos los endpoints que requieren autenticación.
 - `DELETE /api/cases/:id` - Eliminar caso
 - `GET /api/cases/recent-activities` - Actividad reciente (abogados)
 - `GET /api/cases/recent` - Casos recientes
+- `GET /api/cases/by-client/{clientId}` - Casos por cliente
+- `POST /api/cases/by-client/{clientId}` - Crear caso para cliente
+- `PUT /api/cases/by-client/{clientId}/{caseId}` - Actualizar caso de cliente
+- `PATCH /api/cases/by-client/{clientId}/{caseId}` - Actualizar parcialmente caso de cliente
+- `DELETE /api/cases/by-client/{clientId}/{caseId}` - Eliminar caso de cliente
 
 ### 📅 Citas (appointments)
 - `GET /api/appointments` - Listar citas
@@ -127,6 +138,32 @@ Ahora puedes probar todos los endpoints que requieren autenticación.
 - `GET /api/invoices/:id` - Obtener factura
 - `PATCH /api/invoices/:id` - Actualizar factura
 - `DELETE /api/invoices/:id` - Eliminar factura
+- `POST /api/invoices/:id/generate-pdf` - Generar PDF
+- `GET /api/invoices/by-client/{clientId}` - Facturas por cliente
+- `POST /api/invoices/by-client/{clientId}` - Crear factura para cliente
+- `PUT /api/invoices/by-client/{clientId}/{invoiceId}` - Actualizar factura de cliente
+- `PATCH /api/invoices/by-client/{clientId}/{invoiceId}` - Actualizar parcialmente factura de cliente
+- `DELETE /api/invoices/by-client/{clientId}/{invoiceId}` - Eliminar factura de cliente
+
+### 🔐 Facturación Electrónica (Facturae)
+- `POST /api/facturae/:id/generate-and-sign` - Generar y firmar factura electrónica
+- `GET /api/facturae/:id/validate` - Validar factura electrónica
+- `GET /api/facturae/:id/download` - Descargar XML firmado
+- `GET /api/facturae/:id/validation-report` - Reporte de validación
+- `GET /api/facturae/certificate/info` - Información del certificado
+- `GET /api/facturae/certificate/status` - Estado del certificado
+- `POST /api/facturae/validate-xml` - Validar XML directamente
+- `GET /api/facturae/config` - Configuración del servicio
+- `GET /api/facturae/test-connectivity` - Prueba de conectividad
+
+### 🌐 Sistemas Externos (External Systems)
+- `POST /api/external-systems/:invoiceId/send/:system` - Enviar factura a sistema externo
+- `GET /api/external-systems/:invoiceId/validate/:system` - Validar factura para sistema externo
+- `GET /api/external-systems/:invoiceId/status/:system` - Consultar estado en sistema externo
+- `GET /api/external-systems/test-connectivity/:system` - Probar conectividad con sistema externo
+- `GET /api/external-systems/available` - Sistemas externos disponibles
+- `GET /api/external-systems/config/:system` - Configuración del sistema externo
+- `POST /api/external-systems/batch-send/:system` - Envío masivo a sistema externo
 
 ### 💳 Provisiones de Fondos (provision-fondos)
 - `GET /api/provision-fondos` - Listar provisiones
@@ -140,6 +177,26 @@ Ahora puedes probar todos los endpoints que requieren autenticación.
 
 ### 📊 Reportes (reports)
 - `GET /api/reports` - Obtener reportes
+- `GET /api/reports/cases` - Reporte de expedientes
+- `GET /api/reports/invoices` - Reporte de facturación
+- `GET /api/reports/teleassistance` - Reporte de teleasistencia
+
+### 🖥️ Teleasistencia (Teleassistance)
+- `POST /api/teleassistance/sessions` - Crear sesión de teleasistencia
+- `GET /api/teleassistance/sessions/:id` - Obtener sesión por ID
+- `GET /api/teleassistance/sessions/user/:userId` - Sesiones de usuario
+- `GET /api/teleassistance/sessions/assistant/:assistantId` - Sesiones de asistente
+- `GET /api/teleassistance/sessions/pending` - Sesiones pendientes
+- `PUT /api/teleassistance/sessions/:id` - Actualizar sesión
+- `POST /api/teleassistance/sessions/:id/start` - Iniciar sesión
+- `POST /api/teleassistance/sessions/:id/end` - Finalizar sesión
+- `POST /api/teleassistance/sessions/:id/messages` - Agregar mensaje
+- `GET /api/teleassistance/sessions/:id/messages` - Obtener mensajes
+- `GET /api/teleassistance/remote-tools` - Herramientas de control remoto
+- `GET /api/teleassistance/common-issues` - Problemas comunes
+- `GET /api/teleassistance/stats` - Estadísticas de teleasistencia
+- `GET /api/teleassistance/my-sessions` - Mis sesiones
+- `GET /api/teleassistance/available-assistants` - Asistentes disponibles
 
 ### ⚙️ Administración (admin)
 - `GET /api/admin/dashboard` - Dashboard administrativo
@@ -159,6 +216,24 @@ Ahora puedes probar todos los endpoints que requieren autenticación.
 - `POST /api/parametros` - Crear parámetro
 - `PUT /api/parametros/:id` - Actualizar parámetro
 - `DELETE /api/parametros/:id` - Eliminar parámetro
+- `GET /api/parametros/contact` - Parámetros de contacto (público)
+- `GET /api/parametros/legal` - Contenido legal (público)
+
+### 🏗️ Configuración de Menús (Menu Config)
+- `GET /api/menu-config` - Obtener configuraciones de menús
+- `POST /api/menu-config` - Crear configuración de menú
+- `PUT /api/menu-config/:id` - Actualizar configuración de menú
+- `DELETE /api/menu-config/:id` - Eliminar configuración de menú
+
+### 🏢 Configuración del Sitio (Site Config)
+- `GET /api/site-config` - Obtener configuraciones del sitio
+- `POST /api/site-config` - Crear configuración del sitio
+- `PUT /api/site-config/:id` - Actualizar configuración del sitio
+- `DELETE /api/site-config/:id` - Eliminar configuración del sitio
+- `GET /api/site-config/public` - Configuraciones públicas del sitio
+
+### 📞 Contacto (contact)
+- `POST /api/contact` - Enviar mensaje de contacto
 
 ## 🧪 Ejemplos de Prueba
 
@@ -177,13 +252,50 @@ Ahora puedes probar todos los endpoints que requieren autenticación.
    ```
 5. Ejecuta la petición
 
-### Ejemplo 2: Obtener Casos Recientes
+### Ejemplo 2: Generar y Firmar Factura Electrónica
+1. Ve a la sección **Facturae**
+2. Expande `POST /api/facturae/:id/generate-and-sign`
+3. Haz clic en "Try it out"
+4. Ingresa el ID de la factura y las opciones:
+   ```json
+   {
+     "level": "T",
+     "tsaUrl": "https://tsa.example.com/timestamp",
+     "ocspUrl": "https://ocsp.example.com"
+   }
+   ```
+5. Ejecuta la petición
+
+### Ejemplo 3: Crear Sesión de Teleasistencia
+1. Ve a la sección **Teleassistance**
+2. Expande `POST /api/teleassistance/sessions`
+3. Haz clic en "Try it out"
+4. Ingresa los datos:
+   ```json
+   {
+     "userId": "client-uuid",
+     "assistantId": "lawyer-uuid",
+     "issueType": "AUTOFIRMA",
+     "description": "No puedo instalar Autofirma",
+     "remoteTool": "REMOTELY_ANYWHERE"
+   }
+   ```
+5. Ejecuta la petición
+
+### Ejemplo 4: Enviar Factura a Sistema Externo
+1. Ve a la sección **External Systems**
+2. Expande `POST /api/external-systems/:invoiceId/send/:system`
+3. Haz clic en "Try it out"
+4. Ingresa el ID de la factura y el sistema (AEAT, FACE, GENERAL)
+5. Ejecuta la petición
+
+### Ejemplo 5: Obtener Casos Recientes
 1. Ve a la sección **cases**
 2. Expande `GET /api/cases/recent`
 3. Haz clic en "Try it out"
 4. Ejecuta la petición
 
-### Ejemplo 3: Crear una Tarea
+### Ejemplo 6: Crear una Tarea
 1. Ve a la sección **tasks**
 2. Expande `POST /api/tasks`
 3. Haz clic en "Try it out"
@@ -239,59 +351,46 @@ Ahora puedes probar todos los endpoints que requieren autenticación.
 
 ### Problema: Endpoints no aparecen
 **Solución:**
-1. Verificar que los decoradores Swagger estén en los controladores
-2. Reiniciar el servidor backend
-3. Limpiar caché del navegador
+1. Verificar que el servidor esté corriendo con la configuración correcta
+2. Verificar que todos los módulos estén importados en `app.module.ts`
+3. Revisar los logs del servidor para errores de compilación
 
 ### Problema: Errores de CORS
 **Solución:**
-1. Verificar configuración de CORS en `main.ts`
-2. Verificar que el frontend esté en la URL permitida
-3. Revisar variables de entorno
+1. Verificar la configuración de CORS en `main.ts`
+2. Asegurar que el frontend esté en el origen permitido
+3. Verificar que las credenciales estén configuradas correctamente
 
-## 📚 Documentación Relacionada
+## 📈 Estadísticas de la API
 
-- **[Configuración de Swagger](swagger-configuracion.md)** - Detalles técnicos de la implementación
-- **[Endpoints Completos](swagger-endpoints.md)** - Lista detallada de todos los endpoints
-- **[Guía Rápida](guia-rapida.md)** - Instalación y configuración básica
-- **[Configuración Avanzada](configuracion-avanzada.md)** - Configuraciones detalladas
+### Total de Endpoints: 100+
+- **Autenticación**: 5 endpoints
+- **Usuarios**: 11 endpoints
+- **Casos**: 12 endpoints
+- **Citas**: 4 endpoints
+- **Documentos**: 4 endpoints
+- **Tareas**: 5 endpoints
+- **Facturación**: 12 endpoints
+- **Facturación Electrónica**: 9 endpoints
+- **Sistemas Externos**: 7 endpoints
+- **Provisiones de Fondos**: 3 endpoints
+- **Teleasistencia**: 15 endpoints
+- **Reportes**: 4 endpoints
+- **Administración**: 11 endpoints
+- **Parámetros**: 6 endpoints
+- **Configuración de Menús**: 4 endpoints
+- **Configuración del Sitio**: 5 endpoints
+- **Contacto**: 1 endpoint
 
-## 🎯 Beneficios de Usar Swagger
-
-### Para Desarrolladores
-- ✅ **Documentación Automática** - Siempre actualizada
-- ✅ **Pruebas Interactivas** - Sin herramientas externas
-- ✅ **Esquemas Claros** - Estructura de datos definida
-- ✅ **Ejemplos de Uso** - Implementación guiada
-
-### Para el Equipo
-- ✅ **Comunicación Mejorada** - API clara para todos
-- ✅ **Onboarding Rápido** - Nuevos desarrolladores
-- ✅ **Testing Simplificado** - Pruebas directas
-- ✅ **Documentación Viva** - Siempre sincronizada
-
-### Para el Cliente
-- ✅ **Transparencia** - API completamente documentada
-- ✅ **Facilidad de Integración** - Ejemplos claros
-- ✅ **Soporte Mejorado** - Problemas más fáciles de resolver
-
-## 🔄 Mantenimiento
-
-### Actualizaciones Automáticas
-- Los cambios en los controladores se reflejan automáticamente
-- Los DTOs actualizados se documentan automáticamente
-- Los nuevos endpoints aparecen automáticamente
-
-### Buenas Prácticas
-- ✅ Mantener descripciones claras y concisas
-- ✅ Usar ejemplos relevantes
-- ✅ Documentar todos los códigos de respuesta
-- ✅ Organizar endpoints por funcionalidad
-- ✅ Mantener consistencia en la nomenclatura
+### Cobertura por Roles
+- **ADMIN**: Acceso completo a todos los endpoints
+- **ABOGADO**: Acceso a gestión de casos, clientes, facturación y teleasistencia
+- **CLIENTE**: Acceso limitado a sus propios datos y teleasistencia
+- **Público**: Acceso a parámetros de contacto y configuración pública
 
 ---
 
 **URL de Acceso**: `http://localhost:3000/api/docs`  
-**Total de endpoints documentados**: 60+  
+**Total de endpoints documentados**: 100+  
 **Fecha de última actualización**: Diciembre 2024  
-**Versión**: 1.0.0 
+**Versión**: 2.0.0 

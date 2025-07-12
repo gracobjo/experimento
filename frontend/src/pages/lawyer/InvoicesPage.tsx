@@ -4,6 +4,7 @@ import { getClients } from '../../api/clients';
 import { useAuth } from '../../context/AuthContext';
 import { getPendingProvisions, getProvisionesPendientesPorClienteExpediente } from '../../api/provisionFondos';
 import api from '../../api/axios';
+import QRCode from 'react-qr-code';
 
 const initialForm = {
   numeroFactura: '',
@@ -55,6 +56,10 @@ const InvoicesPage = () => {
   // Encuentra el perfil de cliente seleccionado
   const selectedClient = clients.find((c: any) => c.user.id === form.receptorId);
   const clientProfileId = selectedClient?.id;
+
+  // Añadir estados para filtros
+  const [selectedClientFilter, setSelectedClientFilter] = useState('');
+  const [selectedPaymentDate, setSelectedPaymentDate] = useState('');
 
   useEffect(() => {
     fetchInvoices();
@@ -130,14 +135,18 @@ const InvoicesPage = () => {
     fetchProvisiones();
   }, [form.receptorId, form.expedienteId, clientProfileId, form.id]);
 
+  // Modificar fetchInvoices para usar filtros
   const fetchInvoices = async () => {
     setLoading(true);
     try {
       if (!token) {
         throw new Error('No token available');
       }
-      const data = await getInvoices(token);
-      setInvoices(data);
+      const params: any = {};
+      if (selectedClientFilter) params.clientId = selectedClientFilter;
+      if (selectedPaymentDate) params.paymentDate = selectedPaymentDate;
+      const res = await api.get('/invoices', { headers: { Authorization: `Bearer ${token}` }, params });
+      setInvoices(res.data);
     } catch (err) {
       setError('Error al cargar las facturas');
     } finally {
@@ -230,14 +239,17 @@ const InvoicesPage = () => {
     try {
       // El backend calculará automáticamente los totales basándose en los items
       const { emisorId, fechaFactura, importeTotal, baseImponible, cuotaIVA, ...facturaDataSinCalculos } = form;
+      // --- Normalización de campos numéricos y estado ---
       const facturaData = {
         ...facturaDataSinCalculos,
+        descuento: form.descuento === '' || form.descuento == null ? 0 : Number(form.descuento),
+        retencion: form.retencion === '' || form.retencion == null ? 0 : Number(form.retencion),
+        tipoIVA: form.tipoIVA === '' || form.tipoIVA == null ? 21 : Number(form.tipoIVA),
+        estado: form.estado || 'emitida',
         provisionIds: provisionesSeleccionadas,
       };
-      
       console.log('FRONTEND - provisionesSeleccionadas:', provisionesSeleccionadas);
       console.log('FRONTEND - facturaData a enviar:', facturaData);
-      
       await createInvoice(facturaData, token ?? '');
       setSuccessMsg('✅ Factura creada correctamente.');
       setShowModal(false);
@@ -288,6 +300,10 @@ const InvoicesPage = () => {
         ...facturaDataSinCalculos,
         items: itemsLimpios,
         provisionIds: provisionesSeleccionadas,
+        descuento: form.descuento === '' || form.descuento == null ? 0 : Number(form.descuento),
+        retencion: form.retencion === '' || form.retencion == null ? 0 : Number(form.retencion),
+        tipoIVA: form.tipoIVA === '' || form.tipoIVA == null ? 21 : Number(form.tipoIVA),
+        estado: form.estado || 'emitida',
       };
       
       await updateInvoice(form.id, facturaData, token ?? '');
@@ -628,8 +644,8 @@ const InvoicesPage = () => {
                 <div class="section">
                   <h3>DESCUENTOS</h3>
                   <div class="discount">
-                    <strong>Descuento (${invoice.descuento}%):</strong> 
-                    -${formatCurrency(invoice.items?.reduce((sum: number, item: any) => sum + (item.quantity * item.unitPrice), 0) * (invoice.descuento / 100))}
+                    <strong>Descuento (${invoice.descuento ?? 0}%):</strong> 
+                    -${formatCurrency((invoice.items?.reduce((sum: number, item: any) => sum + (item.quantity * item.unitPrice), 0) || 0) * ((invoice.descuento ?? 0) / 100))}
                   </div>
                 </div>
                 ` : ''}
@@ -661,10 +677,10 @@ const InvoicesPage = () => {
                 ` : ''}
                 
                 <div class="totals">
-                  <div><strong>Base Imponible:</strong> ${formatCurrency(invoice.baseImponible)}</div>
-                  <div><strong>IVA (${invoice.tipoIVA}%):</strong> ${formatCurrency(invoice.cuotaIVA)}</div>
+                  <div><strong>Base Imponible:</strong> ${formatCurrency(invoice.baseImponible ?? 0)}</div>
+                  <div><strong>IVA (${invoice.tipoIVA ?? 21}%):</strong> ${formatCurrency(invoice.cuotaIVA ?? 0)}</div>
                   <div style="font-size: 1.2em; font-weight: bold; border-top: 1px solid #333; padding-top: 10px;">
-                    <strong>TOTAL:</strong> ${formatCurrency(invoice.importeTotal)}
+                    <strong>TOTAL:</strong> ${formatCurrency(invoice.importeTotal ?? 0)}
                   </div>
                 </div>
                 
@@ -713,15 +729,27 @@ const InvoicesPage = () => {
           <div className="flex justify-between items-start">
             <div>
               <h1 className="text-3xl font-bold text-gray-800 mb-2">FACTURA</h1>
+              {/* QR entre FACTURA y Fecha de operación */}
+              <div className="my-4 flex flex-col items-center">
+                {invoice.qrData ? (
+                  <>
+                    <h4 className="text-xs text-gray-600 mb-1">Código QR de la factura</h4>
+                    <QRCode value={invoice.qrData} size={120} />
+                    <pre className="text-xs mt-1 bg-gray-100 p-1 rounded">{invoice.qrData}</pre>
+                  </>
+                ) : (
+                  <span className="text-xs text-gray-400">QR no disponible</span>
+                )}
+              </div>
               <div className="text-lg text-gray-600">
-                <div><strong>Número:</strong> {invoice.numeroFactura}</div>
-                <div><strong>Fecha:</strong> {formatDate(invoice.fechaFactura)}</div>
-                <div><strong>Tipo:</strong> {invoice.tipoFactura === 'F' ? 'Completa' : 'Rectificativa'}</div>
+                <div><strong>Número:</strong> {invoice.numeroFactura || 'N/A'}</div>
+                <div><strong>Fecha:</strong> {invoice.fechaFactura ? formatDate(invoice.fechaFactura) : 'N/A'}</div>
+                <div><strong>Tipo:</strong> {invoice.tipoFactura === 'F' ? 'Completa' : invoice.tipoFactura === 'R' ? 'Rectificativa' : 'N/A'}</div>
                 <div><strong>Estado:</strong> <span className={`px-2 py-1 rounded text-xs ${
                   invoice.estado === 'emitida' ? 'bg-green-100 text-green-800' :
                   invoice.estado === 'anulada' ? 'bg-red-100 text-red-800' :
                   'bg-gray-100 text-gray-800'
-                }`}>{invoice.estado.toUpperCase()}</span></div>
+                }`}>{(invoice.estado || 'N/A').toUpperCase()}</span></div>
               </div>
             </div>
             <div className="text-right">
@@ -786,9 +814,9 @@ const InvoicesPage = () => {
             <h3 className="text-lg font-bold text-gray-800 mb-3">DESCUENTOS</h3>
             <div className="bg-yellow-50 p-4 rounded border border-yellow-200">
               <div className="flex justify-between items-center">
-                <span className="font-semibold text-yellow-800">Descuento ({invoice.descuento}%)</span>
+                <span className="font-semibold text-yellow-800">Descuento ({invoice.descuento ?? 0}%)</span>
                 <span className="font-bold text-yellow-800 text-lg">
-                  -{formatCurrency(invoice.items?.reduce((sum: number, item: any) => sum + (item.quantity * item.unitPrice), 0) * (invoice.descuento / 100))}
+                  -{formatCurrency((invoice.items?.reduce((sum: number, item: any) => sum + (item.quantity * item.unitPrice), 0) || 0) * ((invoice.descuento ?? 0) / 100))}
                 </span>
               </div>
             </div>
@@ -828,15 +856,15 @@ const InvoicesPage = () => {
             <div className="w-64 space-y-2">
               <div className="flex justify-between">
                 <span>Base Imponible:</span>
-                <span className="font-semibold">{formatCurrency(invoice.baseImponible)}</span>
+                <span className="font-semibold">{formatCurrency(invoice.baseImponible ?? 0)}</span>
               </div>
               <div className="flex justify-between">
-                <span>IVA ({invoice.tipoIVA}%):</span>
-                <span className="font-semibold">{formatCurrency(invoice.cuotaIVA)}</span>
+                <span>IVA ({invoice.tipoIVA ?? 21}%):</span>
+                <span className="font-semibold">{formatCurrency(invoice.cuotaIVA ?? 0)}</span>
               </div>
               <div className="flex justify-between text-lg font-bold border-t border-gray-300 pt-2">
                 <span>TOTAL:</span>
-                <span>{formatCurrency(invoice.importeTotal)}</span>
+                <span>{formatCurrency(invoice.importeTotal ?? 0)}</span>
               </div>
             </div>
           </div>
@@ -898,6 +926,21 @@ const InvoicesPage = () => {
         <div className="text-red-600">{error}</div>
       ) : (
         <>
+          <div className="flex flex-wrap gap-4 mb-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Cliente</label>
+              <select value={selectedClientFilter} onChange={e => setSelectedClientFilter(e.target.value)} className="border rounded px-2 py-1">
+                <option value="">Todos</option>
+                {clients.map(client => (
+                  <option key={client.user.id} value={client.user.id}>{client.user.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de pago</label>
+              <input type="date" value={selectedPaymentDate} onChange={e => setSelectedPaymentDate(e.target.value)} className="border rounded px-2 py-1" />
+            </div>
+          </div>
           <div className="overflow-x-auto">
           <table className="min-w-full bg-white border">
             <thead>
@@ -908,6 +951,7 @@ const InvoicesPage = () => {
                 <th className="border px-2 py-1">Cliente</th>
                 <th className="border px-2 py-1">Importe</th>
                 <th className="border px-2 py-1">Estado</th>
+                <th className="border px-2 py-1">Fecha de pago</th>
                 <th className="border px-2 py-1">Provisiones</th>
                 <th className="border px-2 py-1">Acciones</th>
               </tr>
@@ -930,6 +974,7 @@ const InvoicesPage = () => {
                     <td className="border px-2 py-1">{inv.receptor?.name || inv.receptorId}</td>
                   <td className="border px-2 py-1">{inv.importeTotal?.toFixed(2)} €</td>
                   <td className="border px-2 py-1">{inv.estado}</td>
+                  <td className="border px-2 py-1">{inv.paymentDate ? new Date(inv.paymentDate).toLocaleDateString() : '-'}</td>
                     <td className="border px-2 py-1">{inv.provisionFondos?.length || 0}</td>
                     <td className="border px-2 py-1 flex gap-1">
                       <button 

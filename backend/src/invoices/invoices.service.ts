@@ -7,6 +7,8 @@ import { signFacturaeXML, XAdESLevel, SigningOptions } from './xades-sign.util';
 import { FacturaeService, FacturaeGenerationResult } from './facturae.service';
 import { FacturaeValidator, ValidationResult } from './facturae-validator.util';
 import * as fs from 'fs';
+import { PDFDocument, rgb } from 'pdf-lib';
+import * as QRCode from 'qrcode';
 
 @Injectable()
 export class InvoicesService {
@@ -208,29 +210,84 @@ export class InvoicesService {
     }
   }
 
-  async findAll() {
-    return this.prisma.invoice.findMany({ 
-      include: { 
-        items: true, 
-        emisor: true, 
-        receptor: true, 
-        expediente: true,
-        provisionFondos: true 
-      } 
+  async findAll(user: any, lawyerId?: string, clientId?: string, paymentDate?: string) {
+    const where: any = {};
+    if (user?.role === 'ABOGADO') {
+      where.emisorId = user.id;
+    } else if (user?.role === 'CLIENTE') {
+      where.receptorId = user.id;
+    } else {
+      if (lawyerId) where.emisorId = lawyerId;
+      if (clientId) where.receptorId = clientId;
+    }
+    if (paymentDate) {
+      const date = new Date(paymentDate);
+      const nextDay = new Date(date);
+      nextDay.setDate(date.getDate() + 1);
+      where.paymentDate = { gte: date, lt: nextDay };
+    }
+    const invoices = await this.prisma.invoice.findMany({
+      where,
+      include: { emisor: true, receptor: true, expediente: true, items: true, provisionFondos: true },
+      orderBy: { fechaFactura: 'desc' },
     });
+    return invoices.map((invoice: any) => ({
+      id: invoice.id,
+      numeroFactura: invoice.numeroFactura,
+      fechaFactura: invoice.fechaFactura,
+      estado: invoice.estado,
+      importeTotal: invoice.importeTotal,
+      paymentDate: invoice.paymentDate,
+      tipoFactura: invoice.tipoFactura,
+      baseImponible: invoice.baseImponible,
+      cuotaIVA: invoice.cuotaIVA,
+      tipoIVA: invoice.tipoIVA,
+      descuento: invoice.descuento,
+      retencion: invoice.retencion,
+      aplicarIVA: invoice.aplicarIVA,
+      regimenIvaEmisor: invoice.regimenIvaEmisor,
+      claveOperacion: invoice.claveOperacion,
+      metodoPago: invoice.metodoPago,
+      fechaOperacion: invoice.fechaOperacion,
+      createdAt: invoice.createdAt,
+      updatedAt: invoice.updatedAt,
+      motivoAnulacion: invoice.motivoAnulacion,
+      emisorId: invoice.emisorId,
+      receptorId: invoice.receptorId,
+      expedienteId: invoice.expedienteId,
+      emisor: invoice.emisor,
+      receptor: invoice.receptor,
+      expediente: invoice.expediente,
+      items: invoice.items,
+      provisionFondos: invoice.provisionFondos,
+      xml: invoice.xml,
+      xmlFirmado: invoice.xmlFirmado,
+      selloTiempo: invoice.selloTiempo,
+      qrData: [
+        `NIF:${invoice.emisor?.email || ''}`,
+        `NUM:${invoice.numeroFactura || ''}`,
+        `FEC:${invoice.fechaFactura ? new Date(invoice.fechaFactura).toISOString().slice(0, 10) : ''}`,
+        `IMP:${invoice.importeTotal || ''}`
+      ].join('|')
+    }));
   }
 
   async findOne(id: string) {
-    return this.prisma.invoice.findUnique({ 
-      where: { id }, 
-      include: { 
-        items: true, 
-        emisor: true, 
-        receptor: true, 
-        expediente: true,
-        provisionFondos: true 
-      } 
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { id },
+      include: { emisor: true, receptor: true, expediente: true, items: true, provisionFondos: true },
     });
+    if (!invoice) return null;
+    // Generar qrData dinámicamente y devolver junto con la factura
+    return {
+      ...invoice,
+      qrData: [
+        `NIF:${invoice.emisor?.email || ''}`,
+        `NUM:${invoice.numeroFactura || ''}`,
+        `FEC:${invoice.fechaFactura ? new Date(invoice.fechaFactura).toISOString().slice(0, 10) : ''}`,
+        `IMP:${invoice.importeTotal || ''}`
+      ].join('|')
+    };
   }
 
   async update(id: string, data: UpdateInvoiceDto) {
@@ -422,10 +479,20 @@ export class InvoicesService {
   }
 
   async findByClientId(clientId: string) {
-    return this.prisma.invoice.findMany({
+    const invoices = await this.prisma.invoice.findMany({
       where: { receptorId: clientId },
-      orderBy: { createdAt: 'desc' },
+      include: { emisor: true, receptor: true, expediente: true, items: true, provisionFondos: true },
     });
+    // Añadir qrData a cada factura
+    return invoices.map(invoice => ({
+      ...invoice,
+      qrData: [
+        `NIF:${invoice.emisor?.email || ''}`,
+        `NUM:${invoice.numeroFactura || ''}`,
+        `FEC:${invoice.fechaFactura ? new Date(invoice.fechaFactura).toISOString().slice(0, 10) : ''}`,
+        `IMP:${invoice.importeTotal || ''}`
+      ].join('|')
+    }));
   }
 
   async createForClient(clientId: string, createInvoiceDto: CreateInvoiceDto, userId: string) {
@@ -502,6 +569,57 @@ export class InvoicesService {
     if (!invoice) throw new Error('Factura no encontrada para este cliente');
     await this.prisma.invoice.delete({ where: { id: invoiceId } });
     return { message: 'Factura eliminada exitosamente' };
+  }
+
+  async findForClient(clientId: string, lawyerId?: string, paymentDate?: string) {
+    console.log('findForClient called with:', { clientId, lawyerId, paymentDate });
+    const where: any = { receptorId: clientId };
+    if (lawyerId) where.emisorId = lawyerId;
+    if (paymentDate) {
+      // Filtrar por fecha de pago exacta (ignorando hora)
+      const date = new Date(paymentDate);
+      const nextDay = new Date(date);
+      nextDay.setDate(date.getDate() + 1);
+      where.paymentDate = { gte: date, lt: nextDay };
+    }
+    console.log('Prisma where filter:', where);
+    const invoices = await this.prisma.invoice.findMany({
+      where,
+      include: { emisor: true },
+      orderBy: { fechaFactura: 'desc' },
+    });
+    console.log('Facturas encontradas:', invoices.length);
+    return invoices.map((inv: any) => ({
+      id: inv.id,
+      number: inv.numeroFactura,
+      date: inv.fechaFactura,
+      amount: inv.importeTotal,
+      status: inv.estado,
+      qrUrl: inv.xmlFirmado ? `/api/invoices/${inv.id}/qr` : null,
+      pdfUrl: inv.xmlFirmado ? `/api/invoices/${inv.id}/pdf-qr` : null,
+      paymentDate: inv.paymentDate,
+      lawyerName: inv.emisor?.name || '',
+    }));
+  }
+
+  async getClientsWithInvoices() {
+    // Usando Prisma para agrupar facturas por receptorId (cliente)
+    const grouped = await this.prisma.invoice.groupBy({
+      by: ['receptorId'],
+      _count: { id: true },
+    });
+    const clientIds = grouped.map(g => g.receptorId);
+    if (clientIds.length === 0) return [];
+    // Obtener datos de los clientes
+    const clients = await this.prisma.user.findMany({
+      where: { id: { in: clientIds }, role: 'CLIENTE' },
+      select: { id: true, name: true, email: true },
+    });
+    // Unir datos
+    return clients.map(client => {
+      const count = grouped.find(g => g.receptorId === client.id)?._count.id || 0;
+      return { clientId: client.id, name: client.name, email: client.email, facturaCount: count };
+    });
   }
 
   // ===== NUEVOS MÉTODOS PARA FACTURACIÓN ELECTRÓNICA AVANZADA =====
@@ -718,5 +836,55 @@ export class InvoicesService {
         }]
       }
     };
+  }
+
+  /**
+   * Genera un PDF de la factura con un QR que contiene los datos mínimos requeridos.
+   * @param invoice Datos de la factura
+   * @returns Buffer del PDF generado
+   */
+  async generateInvoicePdfWithQR(invoice: any): Promise<Buffer> {
+    // 1. Construir la cadena de datos para el QR según la normativa
+    const qrData = [
+      `NIF:${invoice.emisor?.email || ''}`,
+      `NUM:${invoice.numeroFactura || ''}`,
+      `FEC:${invoice.fechaFactura ? new Date(invoice.fechaFactura).toISOString().slice(0, 10) : ''}`,
+      `IMP:${invoice.importeTotal || ''}`
+    ].join('|');
+
+    // Guardar el contenido del QR en el modelo de factura para su reutilización
+    invoice.qrData = qrData;
+
+    // 2. Generar imagen QR en base64
+    const qrImageDataUrl = await QRCode.toDataURL(qrData, { errorCorrectionLevel: 'M', width: 200 });
+    const qrImageBase64 = qrImageDataUrl.replace(/^data:image\/png;base64,/, '');
+    const qrImageBytes = Buffer.from(qrImageBase64, 'base64');
+
+    // 3. Crear PDF
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([595, 842]); // A4
+    const { width, height } = page.getSize();
+
+    // 4. Añadir datos básicos de la factura
+    page.drawText('Factura', { x: 50, y: height - 50, size: 24, color: rgb(0, 0, 0) });
+    page.drawText(`NIF Emisor: ${invoice.emisor?.dni || invoice.emisor?.email || ''}`, { x: 50, y: height - 90, size: 12 });
+    page.drawText(`Número: ${invoice.numeroFactura || ''}`, { x: 50, y: height - 110, size: 12 });
+    page.drawText(`Fecha: ${invoice.fechaFactura ? new Date(invoice.fechaFactura).toISOString().slice(0, 10) : ''}`, { x: 50, y: height - 130, size: 12 });
+    page.drawText(`Importe total: ${invoice.importeTotal} €`, { x: 50, y: height - 150, size: 12 });
+    // ... puedes añadir más campos según tu modelo ...
+
+    // 5. Insertar QR en el PDF
+    const qrImage = await pdfDoc.embedPng(qrImageBytes);
+    page.drawImage(qrImage, {
+      x: width - 170,
+      y: height - 220,
+      width: 120,
+      height: 120,
+    });
+    page.drawText('Verifica esta factura escaneando el QR', { x: width - 200, y: height - 240, size: 8 });
+
+    // 6. Finalizar PDF
+    const pdfBytes = await pdfDoc.save();
+    return Buffer.from(pdfBytes);
   }
 } 

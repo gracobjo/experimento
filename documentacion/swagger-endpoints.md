@@ -51,6 +51,36 @@ Content-Type: application/json
 **Descripción**: Eliminar usuario
 **Roles**: ADMIN
 
+### **GET /api/users/clients**
+**Descripción**: Obtener todos los clientes
+**Roles**: ADMIN, ABOGADO
+**Respuesta**: Lista de clientes
+
+### **GET /api/users/clients/my**
+**Descripción**: Obtener mis clientes (abogado autenticado)
+**Roles**: ABOGADO
+**Respuesta**: Lista de clientes del abogado
+
+### **GET /api/users/clients/stats**
+**Descripción**: Estadísticas de clientes
+**Roles**: ADMIN, ABOGADO
+**Respuesta**: Estadísticas de clientes
+
+### **GET /api/users/clients/report**
+**Descripción**: Reporte detallado de clientes
+**Roles**: ADMIN, ABOGADO
+**Respuesta**: Reporte completo de clientes
+
+### **GET /api/users/clients/profile**
+**Descripción**: Mi perfil de cliente
+**Roles**: CLIENTE
+**Respuesta**: Perfil del cliente con casos
+
+### **GET /api/users/lawyers**
+**Descripción**: Obtener todos los abogados
+**Roles**: ADMIN, ABOGADO, CLIENTE
+**Respuesta**: Lista de abogados
+
 ---
 
 ## 🔐 Autenticación (Auth)
@@ -140,28 +170,28 @@ Content-Type: application/json
 **Roles**: ABOGADO
 **Respuesta**: Expedientes, tareas, citas y provisiones recientes
 
-### **GET /cases/by-client/{clientId}**
-**Descripción**: Lista todos los casos de un cliente específico.
+### **GET /api/cases/by-client/{clientId}**
+**Descripción**: Lista todos los casos de un cliente específico
 **Roles**: ADMIN, ABOGADO
 **Query Params**: `clientId`
 
-### **POST /cases/by-client/{clientId}**
-**Descripción**: Crea un nuevo caso para un cliente.
+### **POST /api/cases/by-client/{clientId}**
+**Descripción**: Crea un nuevo caso para un cliente
 **Roles**: ADMIN, ABOGADO
 **Body**: CreateCaseDto
 
-### **PUT /cases/by-client/{clientId}/{caseId}**
-**Descripción**: Actualiza un caso de un cliente.
+### **PUT /api/cases/by-client/{clientId}/{caseId}**
+**Descripción**: Actualiza un caso de un cliente
 **Roles**: ADMIN, ABOGADO
 **Body**: UpdateCaseDto
 
-### **PATCH /cases/by-client/{clientId}/{caseId}**
-**Descripción**: Actualiza parcialmente un caso de un cliente.
+### **PATCH /api/cases/by-client/{clientId}/{caseId}**
+**Descripción**: Actualiza parcialmente un caso de un cliente
 **Roles**: ADMIN, ABOGADO
 **Body**: UpdateCaseDto
 
-### **DELETE /cases/by-client/{clientId}/{caseId}**
-**Descripción**: Elimina un caso de un cliente.
+### **DELETE /api/cases/by-client/{clientId}/{caseId}**
+**Descripción**: Elimina un caso de un cliente
 **Roles**: ADMIN, ABOGADO
 
 ---
@@ -294,29 +324,147 @@ description: string
 **Descripción**: Generar PDF de factura
 **Roles**: ABOGADO
 
-### **GET /invoices/by-client/{clientId}**
-**Descripción**: Lista todas las facturas de un cliente específico.
+### **GET /api/invoices/by-client/{clientId}**
+**Descripción**: Lista todas las facturas de un cliente específico
 **Roles**: ADMIN, ABOGADO
 **Query Params**: `clientId`
 
-### **POST /invoices/by-client/{clientId}**
-**Descripción**: Crea una nueva factura para un cliente.
+### **POST /api/invoices/by-client/{clientId}**
+**Descripción**: Crea una nueva factura para un cliente
 **Roles**: ADMIN, ABOGADO
 **Body**: CreateInvoiceDto
 
-### **PUT /invoices/by-client/{clientId}/{invoiceId}**
-**Descripción**: Actualiza una factura de un cliente.
+### **PUT /api/invoices/by-client/{clientId}/{invoiceId}**
+**Descripción**: Actualiza una factura de un cliente
 **Roles**: ADMIN, ABOGADO
 **Body**: UpdateInvoiceDto
 
-### **PATCH /invoices/by-client/{clientId}/{invoiceId}**
-**Descripción**: Actualiza parcialmente una factura de un cliente.
+### **PATCH /api/invoices/by-client/{clientId}/{invoiceId}**
+**Descripción**: Actualiza parcialmente una factura de un cliente
 **Roles**: ADMIN, ABOGADO
 **Body**: UpdateInvoiceDto
 
-### **DELETE /invoices/by-client/{clientId}/{invoiceId}**
-**Descripción**: Elimina una factura de un cliente.
+### **DELETE /api/invoices/by-client/{clientId}/{invoiceId}**
+**Descripción**: Elimina una factura de un cliente
 **Roles**: ADMIN, ABOGADO
+
+### **GET /api/invoices/by-client/{clientId}/recent**
+**Descripción**: Obtener facturas recientes de un cliente
+**Roles**: ADMIN, ABOGADO
+**Query Params**: `clientId`
+
+### **GET /api/invoices/by-client/{clientId}/stats**
+**Descripción**: Estadísticas de facturación de un cliente
+**Roles**: ADMIN, ABOGADO
+**Query Params**: `clientId`
+
+### **GET /api/invoices/by-client/{clientId}/report**
+**Descripción**: Reporte detallado de facturación de un cliente
+**Roles**: ADMIN, ABOGADO
+**Query Params**: `clientId`
+
+---
+
+## 🔐 Facturación Electrónica (Facturae)
+
+### **POST /api/facturae/:id/generate-and-sign**
+**Descripción**: Generar y firmar factura electrónica
+**Roles**: ADMIN, ABOGADO
+**Body**:
+```json
+{
+  "level": "BES | T | C | X | XL",
+  "tsaUrl": "string",
+  "ocspUrl": "string",
+  "policy": "string",
+  "signerRole": "string"
+}
+```
+
+### **GET /api/facturae/:id/validate**
+**Descripción**: Validar factura electrónica
+**Roles**: ADMIN, ABOGADO
+**Query Params**: `signature` (boolean)
+
+### **GET /api/facturae/:id/download**
+**Descripción**: Descargar XML firmado
+**Roles**: ADMIN, ABOGADO
+**Respuesta**: Archivo XML
+
+### **GET /api/facturae/:id/validation-report**
+**Descripción**: Reporte de validación
+**Roles**: ADMIN, ABOGADO
+
+### **GET /api/facturae/certificate/info**
+**Descripción**: Información del certificado
+**Roles**: ADMIN, ABOGADO
+
+### **GET /api/facturae/certificate/status**
+**Descripción**: Estado del certificado
+**Roles**: ADMIN, ABOGADO
+
+### **POST /api/facturae/validate-xml**
+**Descripción**: Validar XML directamente
+**Roles**: ADMIN, ABOGADO
+**Body**:
+```json
+{
+  "xml": "string",
+  "checkSignature": true
+}
+```
+
+### **GET /api/facturae/config**
+**Descripción**: Configuración del servicio
+**Roles**: ADMIN, ABOGADO
+
+### **GET /api/facturae/test-connectivity**
+**Descripción**: Prueba de conectividad
+**Roles**: ADMIN, ABOGADO
+
+---
+
+## 🌐 Sistemas Externos (External Systems)
+
+### **POST /api/external-systems/:invoiceId/send/:system**
+**Descripción**: Enviar factura a sistema externo
+**Roles**: ADMIN, ABOGADO
+**Parámetros**: `invoiceId` (string), `system` (AEAT | FACE | GENERAL)
+
+### **GET /api/external-systems/:invoiceId/validate/:system**
+**Descripción**: Validar factura para sistema externo
+**Roles**: ADMIN, ABOGADO
+**Parámetros**: `invoiceId` (string), `system` (AEAT | FACE | GENERAL)
+
+### **GET /api/external-systems/:invoiceId/status/:system**
+**Descripción**: Consultar estado en sistema externo
+**Roles**: ADMIN, ABOGADO
+**Parámetros**: `invoiceId` (string), `system` (string)
+
+### **GET /api/external-systems/test-connectivity/:system**
+**Descripción**: Probar conectividad con sistema externo
+**Roles**: ADMIN, ABOGADO
+**Parámetros**: `system` (string)
+
+### **GET /api/external-systems/available**
+**Descripción**: Sistemas externos disponibles
+**Roles**: ADMIN, ABOGADO
+
+### **GET /api/external-systems/config/:system**
+**Descripción**: Configuración del sistema externo
+**Roles**: ADMIN, ABOGADO
+**Parámetros**: `system` (string)
+
+### **POST /api/external-systems/batch-send/:system**
+**Descripción**: Envío masivo a sistema externo
+**Roles**: ADMIN, ABOGADO
+**Parámetros**: `system` (AEAT | FACE | GENERAL)
+**Body**:
+```json
+{
+  "invoiceIds": ["string"]
+}
+```
 
 ---
 
@@ -374,6 +522,16 @@ description: string
 ### **DELETE /api/parametros/:id**
 **Descripción**: Eliminar parámetro
 **Roles**: ADMIN
+
+### **GET /api/parametros/contact**
+**Descripción**: Obtener parámetros de contacto (público)
+**Roles**: Público
+**Respuesta**: Parámetros de contacto para el frontend
+
+### **GET /api/parametros/legal**
+**Descripción**: Obtener contenido legal (público)
+**Roles**: Público
+**Respuesta**: Contenido legal (privacidad, términos, etc.)
 
 ---
 
@@ -445,6 +603,11 @@ description: string
 ### **DELETE /api/site-config/:id**
 **Descripción**: Eliminar configuración del sitio
 **Roles**: ADMIN
+
+### **GET /api/site-config/public**
+**Descripción**: Obtener configuraciones públicas del sitio
+**Roles**: Público
+**Respuesta**: Configuraciones públicas
 
 ---
 
@@ -589,7 +752,35 @@ description: string
 
 ---
 
-## 🔧 Configuración del Sistema
+## 🔧 Administración (Admin)
+
+### **GET /api/admin/dashboard**
+**Descripción**: Dashboard administrativo
+**Roles**: ADMIN
+
+### **GET /api/admin/users**
+**Descripción**: Gestión de usuarios
+**Roles**: ADMIN
+
+### **GET /api/admin/cases**
+**Descripción**: Gestión de casos
+**Roles**: ADMIN
+
+### **GET /api/admin/appointments**
+**Descripción**: Gestión de citas
+**Roles**: ADMIN
+
+### **GET /api/admin/documents**
+**Descripción**: Gestión de documentos
+**Roles**: ADMIN
+
+### **GET /api/admin/tasks**
+**Descripción**: Gestión de tareas
+**Roles**: ADMIN
+
+### **GET /api/admin/reports**
+**Descripción**: Gestión de reportes
+**Roles**: ADMIN
 
 ### **GET /api/admin/layouts**
 **Descripción**: Obtener layouts del sistema
@@ -597,6 +788,14 @@ description: string
 
 ### **POST /api/admin/layouts**
 **Descripción**: Crear nuevo layout
+**Roles**: ADMIN
+
+### **PUT /api/admin/layouts/:id**
+**Descripción**: Actualizar layout
+**Roles**: ADMIN
+
+### **DELETE /api/admin/layouts/:id**
+**Descripción**: Eliminar layout
 **Roles**: ADMIN
 
 ### **GET /api/admin/menu-config**
@@ -664,6 +863,24 @@ curl -X POST http://localhost:3000/api/teleassistance/sessions \
     "description": "No puedo instalar Autofirma",
     "remoteTool": "REMOTELY_ANYWHERE"
   }'
+```
+
+### **Generar y Firmar Factura Electrónica**
+```bash
+curl -X POST http://localhost:3000/api/facturae/invoice_id/generate-and-sign \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "level": "T",
+    "tsaUrl": "https://tsa.example.com/timestamp",
+    "ocspUrl": "https://ocsp.example.com"
+  }'
+```
+
+### **Enviar Factura a Sistema Externo**
+```bash
+curl -X POST http://localhost:3000/api/external-systems/invoice_id/send/AEAT \
+  -H "Authorization: Bearer <token>"
 ```
 
 ### **Obtener Sesiones Pendientes**

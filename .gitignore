@@ -1,0 +1,153 @@
+# ========================================
+# Node.js
+# ========================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ========================================
+# Logs
+# ========================================
+logs/
+*.log
+*.log.*
+
+# ========================================
+# OS and Editor Files
+# ========================================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+.vscode-test
+
+# ========================================
+# Environment Variables
+# ========================================
+.env
+.env.*
+!.env.example
+
+# ========================================
+# Build Output
+# ========================================
+dist/
+build/
+.next/
+out/
+.vite/
+
+# ========================================
+# Prisma
+# ========================================
+prisma/dev.db
+prisma/dev.db-journal
+prisma/migrations/
+
+# ========================================
+# NestJS
+# ========================================
+.cache/
+coverage/
+.nyc_output/
+
+# ========================================
+# React / Vite
+# ========================================
+*.local
+*.svelte-kit
+*.tsbuildinfo
+
+# ========================================
+# Test
+# ========================================
+coverage/
+jest.config.ts
+*.test.ts
+*.spec.ts
+
+# ========================================
+# TypeScript
+# ========================================
+*.tsbuildinfo
+
+# ========================================
+# Python (Chatbot)
+# ========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.git
+.mypy_cache/
+.pytest_cache/
+.hypothesis/
+
+# ========================================
+# Uploads and Temporary Files
+# ========================================
+uploads/
+temp/
+tmp/
+*.tmp
+*.temp
+
+# ========================================
+# Database
+# ========================================
+*.db
+*.sqlite
+*.sqlite3
+
+# ========================================
+# IDE Specific
+# ========================================
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# ========================================
+# PDF Files (Generated and Test)
+# ========================================
+# Exclude all PDF files except documentation
+*.pdf
+!documentacion/**/*.pdf
+!**/README.pdf
+!**/LICENSE.pdf
+
+# Specific PDF exclusions for different directories
+backend/*.pdf
+backend/test/*.pdf
+backend/temp/*.pdf
+frontend/*.pdf
+frontend/test/*.pdf
+chatbot/*.pdf
+chatbot/test/*.pdf 
